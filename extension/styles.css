@@ -27,6 +27,7 @@
 
 /* ==========================================================================
    1. Left Sidebar Navigation Item ("MailFlow" Tab)
+   Pixel-perfect alignment matching Inbox, Starred, Drafts, and Purchases
    ========================================================================== */
 .mailflow-aim-item {
   list-style: none !important;
@@ -37,24 +38,24 @@
 }
 
 .mailflow-nav-item {
-  position: relative;
+  position: relative !important;
   display: flex !important;
-  align-items: center;
+  align-items: center !important;
   height: 32px !important;
   min-height: 32px !important;
-  padding: 0 16px 0 24px !important; /* Matches Gmail's 24px left indent */
   margin: 1px 12px 1px 0 !important;
+  padding: 0 !important; /* Zero out outer padding so inner .TN aligns naturally */
   border-radius: 0 16px 16px 0 !important;
-  cursor: pointer;
-  user-select: none;
+  cursor: pointer !important;
+  user-select: none !important;
   font-family: var(--mf-font) !important;
   font-size: 14px !important;
   font-weight: 500 !important;
   color: var(--mf-on-surface) !important;
-  line-height: 20px;
-  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s ease;
-  z-index: 5;
-  box-sizing: border-box;
+  line-height: 20px !important;
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  z-index: 5 !important;
+  box-sizing: border-box !important;
 }
 
 .mailflow-nav-item:hover {
@@ -69,85 +70,106 @@
 .mailflow-nav-item.active {
   background-color: var(--mf-primary-container) !important;
   color: var(--mf-on-primary-container) !important;
-  font-weight: 700 !important;
 }
 
-.mailflow-nav-inner {
-  display: flex;
-  align-items: center;
-  width: 100%;
+.mailflow-nav-item .TN {
+  padding-left: 26px !important; /* Exact native Gmail left indent */
+  padding-right: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 32px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
-.mailflow-nav-icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  margin-right: 18px; /* Matches Gmail's exact 18px gap between icon and text */
-  flex-shrink: 0;
+.mailflow-nav-item .qj {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important; /* Exact native Gmail icon container width */
+  height: 20px !important;
+  margin-right: 18px !important; /* Exact native Gmail spacing between icon and text */
+  margin-left: 0 !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
 }
 
-.mailflow-nav-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--mf-on-surface-variant);
+.mailflow-nav-item .mailflow-nav-icon {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
+  color: var(--mf-on-surface-variant) !important;
   transition: color 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .mailflow-nav-item:hover .mailflow-nav-icon {
-  color: var(--mf-primary);
-  transform: scale(1.08);
+  color: var(--mf-primary) !important;
+  transform: scale(1.06);
 }
 
 .mailflow-nav-item.active .mailflow-nav-icon {
-  color: var(--mf-primary);
+  color: var(--mf-on-primary-container) !important;
 }
 
-.mailflow-nav-label {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: 0.1px;
+.mailflow-nav-item .aio {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
 }
 
-/* Status Indicator Dot (Positioned on the right, matching badge alignment) */
-.mailflow-nav-badge-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: auto;
-  padding-left: 8px;
+.mailflow-nav-item .mailflow-nav-label {
+  font-family: var(--mf-font) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: var(--mf-on-surface) !important;
+  line-height: 20px !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  letter-spacing: 0.1px !important;
+}
+
+.mailflow-nav-item.active .mailflow-nav-label {
+  font-weight: 700 !important;
+  color: var(--mf-on-primary-container) !important;
+}
+
+/* Status Indicator Dot (Aligned with Gmail count badges) */
+.mailflow-nav-item .bsU {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-left: auto !important;
+  padding-left: 8px !important;
 }
 
 .mailflow-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease !important;
 }
 
 .mailflow-status-dot.dot-grey {
-  background-color: #80868b;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  background-color: #80868b !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08) !important;
 }
 
 .mailflow-status-dot.dot-green {
-  background-color: #1e8e3e;
-  box-shadow: 0 0 0 2px rgba(30, 142, 62, 0.2);
+  background-color: #1e8e3e !important;
+  box-shadow: 0 0 0 2px rgba(30, 142, 62, 0.2) !important;
 }
 
 .mailflow-status-dot.dot-red {
-  background-color: #d93025;
-  box-shadow: 0 0 0 2px rgba(217, 48, 37, 0.2);
+  background-color: #d93025 !important;
+  box-shadow: 0 0 0 2px rgba(217, 48, 37, 0.2) !important;
 }
 
 .mailflow-status-dot.dot-yellow {
-  background-color: #f9ab00;
-  box-shadow: 0 0 0 2px rgba(249, 171, 0, 0.2);
+  background-color: #f9ab00 !important;
+  box-shadow: 0 0 0 2px rgba(249, 171, 0, 0.2) !important;
 }
 
 /* ==========================================================================
@@ -159,7 +181,7 @@
   height: 100%;
   min-height: 100%;
   width: 100%;
-  background-color: #ffffff !important; /* Native Gmail white */
+  background-color: #ffffff !important;
   color: #1f1f1f;
   box-sizing: border-box;
   font-family: var(--mf-font);
@@ -229,7 +251,6 @@
   border-color: #c4c7c5;
 }
 
-/* Empty State / Triage Container */
 .mailflow-view-body {
   display: flex;
   flex-direction: column;

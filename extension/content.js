@@ -20,7 +20,7 @@
 
   // SVG Icons
   const ICONS = {
-    shield: `<svg class="mailflow-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    shield: `<svg class="mailflow-nav-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="m9 12 2 2 4-4"/>
     </svg>`,
@@ -167,7 +167,7 @@
     const nav = document.querySelector('div[role="navigation"]');
     if (!nav) return null;
 
-    // Search for Spam, All Mail, Drafts, Purchases, or Sent
+    // Priority search: Spam, All Mail, Drafts, Purchases, or Sent
     const spamEl = nav.querySelector('a[href*="#spam"], div[data-tooltip*="Spam"], a[title*="Spam"]');
     if (spamEl) {
       const aim = spamEl.closest('.aim') || spamEl.closest('.TO') || spamEl;
@@ -202,12 +202,12 @@
     const target = findSidebarTargetAnchor();
     if (!target || !target.container) return;
 
-    // Outer .aim row matching Gmail
+    // Outer .aim matching native Gmail list item
     const aimWrapper = document.createElement('div');
     aimWrapper.id = 'mailflow-aim-wrapper';
     aimWrapper.className = 'aim mailflow-aim-item';
 
-    // Inner .TO button with exact icon & label alignment
+    // Inner .TO button with exact .TN > .qj + .aio + .bsU structure
     const navItem = document.createElement('div');
     navItem.id = 'mailflow-sidebar-nav-item';
     navItem.className = 'TO mailflow-nav-item';
@@ -216,12 +216,14 @@
     navItem.setAttribute('aria-label', 'MailFlow');
 
     navItem.innerHTML = `
-      <div class="TN mailflow-nav-inner">
-        <div class="mailflow-nav-icon-wrapper">
+      <div class="TN">
+        <div class="qj">
           ${ICONS.shield}
         </div>
-        <span class="mailflow-nav-label">MailFlow</span>
-        <div class="mailflow-nav-badge-wrapper">
+        <div class="aio aif">
+          <span class="nU"><a class="J-Ke n0 mailflow-nav-label" href="#mailflow">MailFlow</a></span>
+        </div>
+        <div class="bsU">
           <span class="mailflow-status-dot dot-grey" id="mailflow-status-dot" title="MailFlow Status: Monitoring"></span>
         </div>
       </div>
