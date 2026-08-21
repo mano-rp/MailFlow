@@ -657,8 +657,6 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   box-sizing: border-box !important;
   vertical-align: middle !important;
   flex-shrink: 0 !important;
-  pointer-events: auto !important;
-  z-index: 2 !important;
 }
 
 .mailflow-scan-btn {
@@ -679,7 +677,6 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   outline: none !important;
   user-select: none !important;
   box-sizing: border-box !important;
-  pointer-events: auto !important;
 }
 
 .mailflow-scan-btn * {

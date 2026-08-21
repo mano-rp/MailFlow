@@ -1126,7 +1126,7 @@
 
   function createScanButton(row, matchedThreat = null) {
     const actionItem = document.createElement('li');
-    actionItem.className = 'mailflow-row-action-item bqX';
+    actionItem.className = 'mailflow-row-action-item';
     actionItem.setAttribute('role', 'button');
     actionItem.setAttribute('aria-label', 'MailFlow Scan');
     actionItem.setAttribute('data-tooltip', 'MailFlow Scan');
@@ -1147,28 +1147,11 @@
       applyButtonState(actionItem, matchedThreat);
     }
 
-    const onTrigger = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      handleScanClick(row, scanBtn, e);
-    };
-
-    actionItem.addEventListener('click', onTrigger, true);
-    actionItem.addEventListener('mousedown', (e) => {
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-    }, true);
-
     return actionItem;
   }
 
   function ensureRowHasScanButton(row) {
     if (!row) return;
-
-    if (row.dataset.mailflowInjected === 'true' && row.querySelector('.mailflow-row-action-item')) {
-      return;
-    }
 
     if (row.dataset.mailflowRestored === 'true' || (row.dataset.mailflowId && restoredThreatIds.has(row.dataset.mailflowId))) {
       row.style.display = '';
@@ -1190,34 +1173,31 @@
       row.style.display = '';
     }
 
+    const existingItem = row.querySelector('.mailflow-row-action-item');
+
+    // 1. Check for standard Gmail action toolbar (ul)
     const actionToolbar = row.querySelector('ul.bq4, ul.aqL, ul[role="toolbar"], td.bq9 ul, .bq8 ul, .a4y ul, td.yX ul, ul.bqe, ul.bqZ');
     
     if (actionToolbar) {
-      const existing = actionToolbar.querySelector('.mailflow-row-action-item');
-      if (!existing) {
+      if (!actionToolbar.contains(existingItem)) {
+        if (existingItem) existingItem.remove();
         const button = createScanButton(row, matchedThreat);
         actionToolbar.appendChild(button);
-        row.dataset.mailflowInjected = 'true';
-      } else {
-        row.dataset.mailflowInjected = 'true';
-        if (matchedThreat) {
-          applyButtonState(existing, matchedThreat);
-        }
+      } else if (matchedThreat) {
+        applyButtonState(existingItem, matchedThreat);
       }
-    } else {
-      const actionCell = row.querySelector('td.yX, td.bq9, td.a4y, td.xY');
-      if (actionCell) {
-        const existing = actionCell.querySelector('.mailflow-row-action-item');
-        if (!existing) {
-          const button = createScanButton(row, matchedThreat);
-          actionCell.appendChild(button);
-          row.dataset.mailflowInjected = 'true';
-        } else {
-          row.dataset.mailflowInjected = 'true';
-          if (matchedThreat) {
-            applyButtonState(existing, matchedThreat);
-          }
-        }
+      return;
+    }
+
+    // 2. Fallback to action cell container
+    const actionCell = row.querySelector('td.yX, td.bq9, td.a4y, td.xY');
+    if (actionCell) {
+      if (!actionCell.contains(existingItem)) {
+        if (existingItem) existingItem.remove();
+        const button = createScanButton(row, matchedThreat);
+        actionCell.appendChild(button);
+      } else if (matchedThreat) {
+        applyButtonState(existingItem, matchedThreat);
       }
     }
   }
@@ -1225,24 +1205,22 @@
   function scanAllEmailRows() {
     const rows = document.querySelectorAll('tr.zA, .zA');
     rows.forEach(row => {
-      if (row.dataset.mailflowInjected !== 'true') {
-        ensureRowHasScanButton(row);
-      }
+      ensureRowHasScanButton(row);
     });
   }
 
   function setupHoverDelegation() {
-    // 1. Mouseover listener to ensure toolbar has the scan button with early exit
+    // 1. Mouseover & focusin listeners to ensure toolbar has the scan button whenever cursor touches any row
     document.addEventListener('mouseover', (e) => {
       const row = e.target.closest('tr.zA, .zA');
-      if (row && row.dataset.mailflowInjected !== 'true') {
+      if (row) {
         ensureRowHasScanButton(row);
       }
     }, { capture: true, passive: true });
 
     document.addEventListener('focusin', (e) => {
       const row = e.target.closest('tr.zA, .zA');
-      if (row && row.dataset.mailflowInjected !== 'true') {
+      if (row) {
         ensureRowHasScanButton(row);
       }
     }, { capture: true, passive: true });
@@ -1253,7 +1231,6 @@
       if (scanItem) {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation();
 
         const row = scanItem.closest('tr.zA, .zA');
         const btn = scanItem.classList.contains('mailflow-scan-btn') 
@@ -1263,15 +1240,6 @@
         if (row && btn) {
           handleScanClick(row, btn, e);
         }
-      }
-    }, { capture: true });
-
-    // 3. Prevent mousedown from focusing / selecting row when clicking scan button
-    document.addEventListener('mousedown', (e) => {
-      const scanItem = e.target.closest('.mailflow-row-action-item, .mailflow-scan-btn');
-      if (scanItem) {
-        e.stopPropagation();
-        e.stopImmediatePropagation();
       }
     }, { capture: true });
   }
