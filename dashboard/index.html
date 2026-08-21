@@ -38,8 +38,104 @@
 </head>
 <body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen font-sans antialiased transition-colors duration-150 selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-100 dark:selection:text-zinc-900">
 
-  <!-- Main App Shell -->
-  <div class="flex flex-col min-h-screen">
+  <!-- ===================================================================== -->
+  <!-- 1. AUTHENTICATION GATE SCREEN                                         -->
+  <!-- ===================================================================== -->
+  <div id="auth-view" class="min-h-screen flex items-center justify-center p-4 transition-opacity duration-200">
+    <div class="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm space-y-5">
+      
+      <!-- Card Header -->
+      <div class="text-center space-y-2">
+        <div class="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center text-white dark:text-zinc-900 mx-auto shadow-sm">
+          <i data-lucide="shield" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-semibold text-zinc-900 dark:text-white tracking-tight">MailFlow Fleet Command</h1>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Sign in to access organizational threat analytics</p>
+        </div>
+      </div>
+
+      <!-- Auth Form -->
+      <form id="auth-form" class="space-y-3.5" autocomplete="on">
+        
+        <!-- Email Input -->
+        <div class="space-y-1">
+          <label for="auth-email" class="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Admin Identity</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
+            <input 
+              type="text" 
+              id="auth-email" 
+              name="email"
+              value="admin@mailflow" 
+              placeholder="admin@mailflow"
+              required 
+              class="w-full pl-9 pr-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-900 dark:text-white transition-all font-mono"
+            >
+          </div>
+        </div>
+
+        <!-- Password Input -->
+        <div class="space-y-1">
+          <label for="auth-password" class="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Access Passcode</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
+            <input 
+              type="password" 
+              id="auth-password" 
+              name="password"
+              placeholder="••••" 
+              required 
+              class="w-full pl-9 pr-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-900 dark:text-white transition-all font-mono"
+            >
+          </div>
+        </div>
+
+        <!-- Inline Error Message Box -->
+        <div id="auth-error" class="hidden text-[11px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 p-2 rounded border border-red-200 dark:border-red-900/60 flex items-center gap-1.5">
+          <i data-lucide="alert-circle" class="w-3.5 h-3.5 flex-shrink-0"></i>
+          <span id="auth-error-text">Invalid credentials. Hint: admin@mailflow / 1234</span>
+        </div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit" 
+          id="btn-auth-submit"
+          class="w-full py-2 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium text-xs tracking-wide transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+        >
+          <span>Sign In to Command</span>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </button>
+
+        <!-- Zero Friction Demo Auto-Fill Link -->
+        <div class="pt-2 text-center">
+          <button 
+            type="button" 
+            id="btn-demo-autologin"
+            class="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors inline-flex items-center gap-1 underline underline-offset-2 cursor-pointer"
+          >
+            <i data-lucide="zap" class="w-3 h-3 text-amber-500"></i>
+            <span>Demo One-Click Login</span>
+          </button>
+        </div>
+
+      </form>
+
+      <!-- Footer Branding & Theme Switcher on Login Page -->
+      <div class="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400">
+        <span>SME Defense Suite</span>
+        <button id="btn-auth-theme-toggle" class="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors" title="Toggle Theme">
+          <i id="auth-theme-icon" data-lucide="moon" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 2. MAIN DASHBOARD FLEET COMMAND VIEW (GATED)                          -->
+  <!-- ===================================================================== -->
+  <div id="dashboard-view" class="hidden flex-col min-h-screen">
     
     <!-- Top Header -->
     <header class="sticky top-0 z-30 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 transition-colors">
@@ -79,6 +175,12 @@
           <!-- Theme Switcher -->
           <button id="btn-theme-toggle" class="p-1.5 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Toggle Theme" aria-label="Toggle Theme">
             <i id="theme-icon" data-lucide="moon" class="w-3.5 h-3.5"></i>
+          </button>
+
+          <!-- Logout Button -->
+          <button id="btn-logout" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all cursor-pointer" title="Sign Out">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span>Sign Out</span>
           </button>
         </div>
       </div>
@@ -232,18 +334,18 @@
             </div>
 
             <!-- Demo Seeder Action Button -->
-            <button id="btn-seed-threats" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all" title="Seed Demo Feed">
+            <button id="btn-seed-threats" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all cursor-pointer" title="Seed Demo Feed">
               <i data-lucide="layers" class="w-3 h-3"></i>
               <span>Seed Demo Feed</span>
             </button>
 
             <!-- Clear Button -->
-            <button id="btn-clear-threats" class="p-1 rounded-md text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Clear Ledger Items">
+            <button id="btn-clear-threats" class="p-1 rounded-md text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all cursor-pointer" title="Clear Ledger Items">
               <i data-lucide="trash" class="w-3.5 h-3.5"></i>
             </button>
 
             <!-- Export Button -->
-            <button id="btn-export-log" class="p-1 rounded-md text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Export Ledger JSON">
+            <button id="btn-export-log" class="p-1 rounded-md text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all cursor-pointer" title="Export Ledger JSON">
               <i data-lucide="download" class="w-3.5 h-3.5"></i>
             </button>
           </div>
