@@ -864,6 +864,8 @@
       if (isMailFlowTabActive) {
         deactivateMailFlowView();
       }
+      setTimeout(checkOpenEmailThread, 60);
+      setTimeout(checkOpenEmailThread, 250);
     }
   }
 
@@ -1244,51 +1246,7 @@
         if (row && btn) {
           handleScanClick(row, btn, e);
         }
-        return;
       }
-
-      // 3. Pre-Open Threat Interception Shield: Intercept clicks on email rows before opening
-      if (e.target.closest(
-        '#mailflow-interception-overlay, #mailflow-placeholder-view, #mailflow-aim-wrapper, ' +
-        '.mailflow-row-action-item, .mailflow-scan-btn, .mailflow-toast, ' +
-        '.T-Jo, .yX, .oZ-jc, .bi4, .y2, .bqe, .bq4, .bq8, .a4y, input[type="checkbox"]'
-      )) {
-        return;
-      }
-
-      const row = e.target.closest('tr.zA, .zA');
-      if (!row) return;
-
-      if (!currentSettings.mf_pre_open_shield) return;
-
-      const { sender, subject, snippet, dateStr } = extractRowMetadata(row);
-      if (!sender && !subject) return;
-
-      const cached = getScannedCache(sender, subject);
-
-      if (cached) {
-        if (cached.tier === 'low') {
-          return; // Verified clean, allow direct opening
-        }
-
-        if (cached.userAcknowledged) {
-          queueInThreadBanner(cached);
-          return; // User acknowledged, allow opening with warning
-        }
-
-        // Flagged threat not yet acknowledged -> intercept and show sandbox
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        openInterceptionShield(row, { sender, subject, snippet, dateStr }, cached);
-        return;
-      }
-
-      // Unscanned email -> intercept and scan in pre-open sandbox
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      openInterceptionShield(row, { sender, subject, snippet, dateStr }, null);
     }, { capture: true });
   }
 
@@ -1324,381 +1282,143 @@
 
   /**
    * =========================================================================
-   * MODULE 4B: ZERO-TRUST PRE-OPEN INTERCEPTION SHIELD & SANDBOX
+   * MODULE 4B: IN-PLACE THREAD CONTENT SHIELD (ZERO-TRUST SANDBOX)
    * =========================================================================
    */
 
-  let pendingInThreadBanner = null;
+  function checkOpenEmailThread() {
+    if (!currentSettings.mf_pre_open_shield) return;
 
-  function ensureInterceptionOverlay() {
-    let overlay = document.getElementById('mailflow-interception-overlay');
-    if (overlay) return overlay;
+    const emailBody = document.querySelector('div.a3s');
+    if (!emailBody) return;
 
-    overlay = document.createElement('div');
-    overlay.id = 'mailflow-interception-overlay';
-    overlay.innerHTML = `
-      <div class="mf-modal-card" id="mailflow-interception-card">
-        <div class="mf-progress-bar" id="mf-progress-bar">
-          <div class="mf-progress-bar-inner"></div>
-        </div>
-        
-        <div class="mf-shield-emblem state-scanning" id="mf-emblem">
-          <div id="mf-emblem-icon-wrap">${ICONS.shield}</div>
-        </div>
-
-        <h2 class="mf-modal-title" id="mf-modal-title">MailFlow Security Shield</h2>
-        <p class="mf-modal-subtitle" id="mf-modal-subtitle">Evaluating email headers, links, and intent in isolated sandbox...</p>
-
-        <div class="mf-meta-strip" id="mf-meta-strip">
-          <div class="mf-meta-subject" id="mf-meta-subject">Subject</div>
-          <div class="mf-meta-sender" id="mf-meta-sender">Sender</div>
-        </div>
-
-        <div class="mf-signals-box" id="mf-signals-box" style="display: none;">
-          <div class="mf-signals-title" id="mf-signals-title">Triggered Security Signals</div>
-          <ul class="mf-signals-list" id="mf-signals-list"></ul>
-        </div>
-
-        <div class="mf-modal-actions" id="mf-modal-actions"></div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-    return overlay;
-  }
-
-  function closeInterceptionShield() {
-    const overlay = document.getElementById('mailflow-interception-overlay');
-    if (overlay) {
-      overlay.classList.remove('active');
-    }
-  }
-
-  function openEmailThread(row) {
-    if (!row) return;
-    row.dataset.mailflowBypass = 'true';
-    const clickTarget = row.querySelector('.y6, .bog, td.yX, td.xY, .bqe') || row;
-    clickTarget.click();
-    setTimeout(() => {
-      delete row.dataset.mailflowBypass;
-    }, 600);
-  }
-
-  async function openInterceptionShield(row, meta, cachedResult) {
-    const overlay = ensureInterceptionOverlay();
-    const { sender, subject, snippet, dateStr } = meta;
-
-    const subjectEl = overlay.querySelector('#mf-meta-subject');
-    const senderEl = overlay.querySelector('#mf-meta-sender');
-    if (subjectEl) subjectEl.textContent = subject || 'No Subject';
-    if (senderEl) senderEl.textContent = sender ? `From: ${sender}` : 'From: Unknown Sender';
-
-    overlay.classList.add('active');
-
-    // If already cached with a verdict
-    if (cachedResult) {
-      if (cachedResult.tier === 'moderate') {
-        renderShieldModerateState(row, meta, cachedResult);
-      } else if (cachedResult.tier === 'high') {
-        renderShieldHighState(row, meta, cachedResult);
-      } else {
-        renderShieldCleanState(row, meta, cachedResult);
-      }
+    if (emailBody.dataset.mailflowShieldProcessed === 'true') {
       return;
     }
 
-    // Otherwise render State 1 (Scanning in Progress)
-    renderShieldScanningState();
+    const messageCard = emailBody.closest('div.adn, div.gs') || emailBody.parentElement;
+    if (!messageCard) return;
 
-    const minLoadingTime = 650;
-    const startTime = performance.now();
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/scan`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          sender,
-          subject,
-          snippet,
-          recipient: 'nithin@mailflow.com',
-          auto_forward_admin: Boolean(currentSettings.autoForwardAdmin)
-        })
-      });
-
-      let data;
-      if (response.ok) {
-        data = await response.json();
-      } else {
-        throw new Error('API non-200');
-      }
-
-      // Check for billing phishing override
-      const combinedText = `${subject || ''} ${snippet || ''}`.toLowerCase();
-      if (
-        combinedText.includes('outstanding payment') ||
-        combinedText.includes('verify account to release') ||
-        combinedText.includes('account-billing-verify') ||
-        combinedText.includes('clear the outstanding amount') ||
-        combinedText.includes('release the payment')
-      ) {
-        data = {
-          ...data,
-          id: data.id || `mf_${Date.now()}`,
-          tier: 'high',
-          risk_score: 94,
-          threat_type: 'Billing Verification & Credential Phishing',
-          color: 'red',
-          action: 'quarantine_slide',
-          matched_steps: [
-            {
-              step_name: 'Financial & Invoice Redirection Check',
-              score: 85.0,
-              matched_rules: ['Outstanding Balance Payment Coercion', 'Payment Release Trap']
-            },
-            {
-              step_name: 'Credential Harvesting Check',
-              score: 90.0,
-              matched_rules: ['Deceptive Domain (account-billing-verify.pages.dev)', 'Account Suspension Intimidation']
-            }
-          ],
-          explanation: 'Critical phishing attack detected (Score 94/100). Flagged for: Fake billing verification link (account-billing-verify.pages.dev); Payment release lure; 24-hour account suspension ultimatum. Quarantined immediately.'
-        };
-      }
-
-      const scanResult = { ...data, sender, subject, snippet, dateStr };
-      setScannedCache(sender, subject, scanResult);
-
-      const elapsed = performance.now() - startTime;
-      if (elapsed < minLoadingTime) {
-        await new Promise(r => setTimeout(r, minLoadingTime - elapsed));
-      }
-
-      if (scanResult.tier === 'low') {
-        renderShieldCleanState(row, meta, scanResult);
-      } else if (scanResult.tier === 'moderate') {
-        moderateThreats.set(scanResult.id, { ...scanResult, row });
-        persistStoredThreats();
-        updateSidebarBadge();
-        renderShieldModerateState(row, meta, scanResult);
-      } else {
-        quarantinedThreats.set(scanResult.id, { ...scanResult, row });
-        persistStoredThreats();
-        updateSidebarBadge();
-        renderShieldHighState(row, meta, scanResult);
-      }
-    } catch (err) {
-      // Fallback evaluation if backend is unreachable
-      const scanResult = {
-        id: `mf_${Date.now()}`,
-        tier: 'low',
-        risk_score: 12,
-        threat_type: 'Verified Safe',
-        explanation: 'Verified Safe — No malicious vectors detected.'
-      };
-      setScannedCache(sender, subject, scanResult);
-      renderShieldCleanState(row, meta, scanResult);
+    if (messageCard.querySelector('.mailflow-thread-shield')) {
+      return;
     }
+
+    const subjectEl = document.querySelector('h2.hP, .ha h2');
+    const senderEl = document.querySelector('span.gD, .gE span[email], .gD');
+
+    const subject = subjectEl ? subjectEl.textContent.trim() : '';
+    const sender = senderEl ? (senderEl.getAttribute('email') || senderEl.textContent.trim()) : '';
+
+    if (!subject && !sender) return;
+
+    const threat = findMatchedThreat(sender, subject) || getScannedCache(sender, subject);
+
+    if (!threat || threat.tier === 'low' || threat.userAcknowledged) {
+      emailBody.dataset.mailflowShieldProcessed = 'true';
+      return;
+    }
+
+    emailBody.dataset.mailflowShieldProcessed = 'true';
+    emailBody.style.display = 'none';
+
+    injectThreadShield(messageCard, emailBody, threat, { sender, subject });
   }
 
-  function renderShieldScanningState() {
-    const overlay = document.getElementById('mailflow-interception-overlay');
-    if (!overlay) return;
+  function injectThreadShield(messageCard, emailBody, threat, meta) {
+    const isHigh = threat.tier === 'high';
+    const shield = document.createElement('div');
+    shield.className = `mailflow-thread-shield ${threat.tier}`;
+    shield.id = 'mailflow-thread-shield';
 
-    overlay.querySelector('#mf-progress-bar').classList.add('active');
-    
-    const emblem = overlay.querySelector('#mf-emblem');
-    emblem.className = 'mf-shield-emblem state-scanning';
-    overlay.querySelector('#mf-emblem-icon-wrap').innerHTML = ICONS.shield;
-
-    overlay.querySelector('#mf-modal-title').textContent = 'MailFlow Security Shield';
-    overlay.querySelector('#mf-modal-subtitle').textContent = 'Evaluating email headers, links, and intent in isolated sandbox...';
-    
-    overlay.querySelector('#mf-signals-box').style.display = 'none';
-    overlay.querySelector('#mf-modal-actions').innerHTML = '';
-  }
-
-  function renderShieldCleanState(row, meta, result) {
-    const overlay = document.getElementById('mailflow-interception-overlay');
-    if (!overlay) return;
-
-    overlay.querySelector('#mf-progress-bar').classList.remove('active');
-    
-    const emblem = overlay.querySelector('#mf-emblem');
-    emblem.className = 'mf-shield-emblem state-clean';
-    overlay.querySelector('#mf-emblem-icon-wrap').innerHTML = ICONS.check;
-
-    overlay.querySelector('#mf-modal-title').textContent = '✓ Verified Safe';
-    overlay.querySelector('#mf-modal-subtitle').textContent = 'No malicious vectors, lookalikes, or credential traps detected.';
-    
-    overlay.querySelector('#mf-signals-box').style.display = 'none';
-    overlay.querySelector('#mf-modal-actions').innerHTML = '';
-
-    setScannedCache(meta.sender, meta.subject, { ...result, userAcknowledged: true });
-
-    // Smooth auto-reveal flow
-    setTimeout(() => {
-      closeInterceptionShield();
-      openEmailThread(row);
-    }, 450);
-  }
-
-  function renderShieldModerateState(row, meta, result) {
-    const overlay = document.getElementById('mailflow-interception-overlay');
-    if (!overlay) return;
-
-    overlay.querySelector('#mf-progress-bar').classList.remove('active');
-    
-    const emblem = overlay.querySelector('#mf-emblem');
-    emblem.className = 'mf-shield-emblem state-moderate';
-    overlay.querySelector('#mf-emblem-icon-wrap').innerHTML = ICONS.warning;
-
-    overlay.querySelector('#mf-modal-title').textContent = `⚠️ Caution: ${result.threat_type || 'Unverified Intent'}`;
-    overlay.querySelector('#mf-modal-subtitle').textContent = result.explanation || 'Moderate caution advised. Verify sender authenticity before interacting with links.';
-
-    // Render signals list
-    const signalsBox = overlay.querySelector('#mf-signals-box');
-    signalsBox.className = 'mf-signals-box moderate';
-    signalsBox.style.display = 'block';
-
-    const signalsList = overlay.querySelector('#mf-signals-list');
-    let rules = [];
-    if (result.matched_steps) {
-      result.matched_steps.forEach(s => {
+    let signalsHtml = '';
+    if (threat.matched_steps && threat.matched_steps.length) {
+      const rules = [];
+      threat.matched_steps.forEach(s => {
         if (s.matched_rules && s.matched_rules.length) rules.push(...s.matched_rules);
       });
-    }
-    if (rules.length === 0) rules = ['Urgent call-to-action pretext', 'Unverified external sender'];
-
-    signalsList.innerHTML = rules.map(r => `<li>${escapeHtml(r)}</li>`).join('');
-
-    const actions = overlay.querySelector('#mf-modal-actions');
-    actions.innerHTML = `
-      <button class="mf-btn-warning-proceed" id="mf-btn-proceed">
-        I understand the risks, proceed to email
-      </button>
-      <button class="mf-btn-subtle-link" id="mf-btn-cancel">
-        Return to Inbox
-      </button>
-    `;
-
-    overlay.querySelector('#mf-btn-proceed').addEventListener('click', () => {
-      setScannedCache(meta.sender, meta.subject, { ...result, userAcknowledged: true });
-      queueInThreadBanner(result);
-      closeInterceptionShield();
-      openEmailThread(row);
-    });
-
-    overlay.querySelector('#mf-btn-cancel').addEventListener('click', () => {
-      closeInterceptionShield();
-    });
-  }
-
-  function renderShieldHighState(row, meta, result) {
-    const overlay = document.getElementById('mailflow-interception-overlay');
-    if (!overlay) return;
-
-    overlay.querySelector('#mf-progress-bar').classList.remove('active');
-    
-    const emblem = overlay.querySelector('#mf-emblem');
-    emblem.className = 'mf-shield-emblem state-high';
-    overlay.querySelector('#mf-emblem-icon-wrap').innerHTML = ICONS.alert;
-
-    overlay.querySelector('#mf-modal-title').textContent = `🚨 Critical Threat: ${result.threat_type || 'Suspected Phishing'}`;
-    overlay.querySelector('#mf-modal-subtitle').textContent = result.explanation || 'Critical phishing or wire fraud threat detected. Quarantined to protect your account.';
-
-    // Render signals list
-    const signalsBox = overlay.querySelector('#mf-signals-box');
-    signalsBox.className = 'mf-signals-box high';
-    signalsBox.style.display = 'block';
-
-    const signalsList = overlay.querySelector('#mf-signals-list');
-    let rules = [];
-    if (result.matched_steps) {
-      result.matched_steps.forEach(s => {
-        if (s.matched_rules && s.matched_rules.length) rules.push(...s.matched_rules);
-      });
-    }
-    if (rules.length === 0) rules = ['Suspicious verification link', 'Account suspension coercion'];
-
-    signalsList.innerHTML = rules.map(r => `<li>${escapeHtml(r)}</li>`).join('');
-
-    const actions = overlay.querySelector('#mf-modal-actions');
-    actions.innerHTML = `
-      <button class="mf-btn-danger-quarantine" id="mf-btn-quarantine">
-        Move to Quarantine & Return to Inbox
-      </button>
-      <button class="mf-btn-subtle-link" id="mf-btn-unsafe">
-        I understand what I am doing — View anyway (Unsafe)
-      </button>
-    `;
-
-    overlay.querySelector('#mf-btn-quarantine').addEventListener('click', () => {
-      closeInterceptionShield();
-      if (row) {
-        row.classList.add('mailflow-quarantine-slide');
-        setTimeout(() => { row.style.display = 'none'; }, 450);
+      if (rules.length) {
+        signalsHtml = `
+          <div class="mf-shield-signals">
+            ${rules.map(r => `<div class="mf-signal-item">• ${escapeHtml(r)}</div>`).join('')}
+          </div>
+        `;
       }
-      showToast('🔴 Threat Quarantined: Isolated from inbox and reported to SME security.', 'alert');
-    });
+    }
 
-    overlay.querySelector('#mf-btn-unsafe').addEventListener('click', () => {
-      setScannedCache(meta.sender, meta.subject, { ...result, userAcknowledged: true, isDefanged: true });
-      queueInThreadBanner({ ...result, isDefanged: true });
-      closeInterceptionShield();
-      openEmailThread(row);
-    });
-  }
+    shield.innerHTML = `
+      <div class="mf-shield-card">
+        <div class="mf-shield-header">
+          <div class="mf-shield-badge ${threat.tier}">
+            <span class="mf-badge-dot"></span>
+            ${isHigh ? 'High Risk Threat' : 'Suspicious Intent Flagged'} (${threat.risk_score || (isHigh ? 94 : 65)}/100)
+          </div>
+          <span class="mf-shield-meta">${escapeHtml(meta.sender || 'Sender')}</span>
+        </div>
 
-  function queueInThreadBanner(threat) {
-    pendingInThreadBanner = threat;
-    setTimeout(() => injectInThreadBanner(), 300);
-    setTimeout(() => injectInThreadBanner(), 800);
-    setTimeout(() => injectInThreadBanner(), 1500);
-  }
+        <h3 class="mf-shield-title">
+          ${isHigh ? '🚨 Email Content Sandboxed & Protected' : '⚠️ Suspicious Intent Detected'}
+        </h3>
 
-  function injectInThreadBanner() {
-    if (!pendingInThreadBanner) return;
+        <p class="mf-shield-desc">
+          ${escapeHtml(threat.explanation || (isHigh ? 'Critical phishing signals detected. Email body is hidden to prevent credential harvesting and malicious link execution.' : 'This email exhibits high-urgency or unverified sender signals.'))}
+        </p>
 
-    const threadContainer = document.querySelector('div.adn.ads, div.h7, div[role="listitem"], div.nH.bkK');
-    if (!threadContainer) return;
+        ${signalsHtml}
 
-    if (document.getElementById('mailflow-thread-banner')) return;
-
-    const banner = document.createElement('div');
-    banner.id = 'mailflow-thread-banner';
-    const isHigh = pendingInThreadBanner.tier === 'high';
-    banner.className = `mailflow-thread-banner ${isHigh ? 'high' : 'moderate'}`;
-
-    const iconHtml = isHigh ? ICONS.alert : ICONS.warning;
-    const titleText = isHigh 
-      ? `🚨 MailFlow Zero-Trust Shield: High Risk Threat (${pendingInThreadBanner.risk_score}/100)`
-      : `⚠️ MailFlow Caution: Flagged for ${pendingInThreadBanner.threat_type || 'Unverified Intent'} (${pendingInThreadBanner.risk_score}/100)`;
-    
-    const bodyText = isHigh
-      ? `This email is identified as suspected phishing. All external links have been defanged for your protection. Do NOT enter credentials or download attachments.`
-      : `This message exhibits high-urgency or financial pretext signals. Verify sender authenticity before interacting with links.`;
-
-    banner.innerHTML = `
-      <div class="mailflow-banner-icon">${iconHtml}</div>
-      <div class="mailflow-banner-content">
-        <div class="mailflow-banner-title">${escapeHtml(titleText)}</div>
-        <div class="mailflow-banner-text">${escapeHtml(bodyText)}</div>
+        <div class="mf-shield-actions">
+          <button class="mf-shield-btn-proceed" type="button">
+            ${isHigh ? 'I understand the risks, reveal content (Defanged)' : 'Proceed to view email content'}
+          </button>
+          ${isHigh ? `
+            <button class="mf-shield-btn-quarantine" type="button">
+              Quarantine Threat & Go Back
+            </button>
+          ` : ''}
+        </div>
       </div>
     `;
 
-    if (isHigh && pendingInThreadBanner.isDefanged) {
-      defangThreadLinks(threadContainer);
+    shield.querySelector('.mf-shield-btn-proceed').addEventListener('click', (e) => {
+      e.stopPropagation();
+      threat.userAcknowledged = true;
+      setScannedCache(meta.sender, meta.subject, { ...threat, userAcknowledged: true, isDefanged: isHigh });
+      
+      shield.remove();
+      emailBody.style.display = '';
+
+      if (isHigh) {
+        defangThreadLinks(emailBody);
+      }
+
+      const banner = document.createElement('div');
+      banner.className = `mailflow-inthread-alert ${threat.tier}`;
+      banner.innerHTML = `
+        <span class="mf-alert-title">${isHigh ? '🚨 MailFlow Shield (High Risk)' : '⚠️ MailFlow Warning'}:</span>
+        <span class="mf-alert-text">${isHigh ? 'All links in this message have been safely defanged. Do NOT enter credentials or download attachments.' : escapeHtml(threat.explanation || 'Exercise caution before clicking links or replying.')}</span>
+      `;
+      emailBody.parentNode.insertBefore(banner, emailBody);
+    });
+
+    const quarantineBtn = shield.querySelector('.mf-shield-btn-quarantine');
+    if (quarantineBtn) {
+      quarantineBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        quarantinedThreats.set(threat.id, { ...threat });
+        persistStoredThreats();
+        updateSidebarBadge();
+        shield.remove();
+        showToast('🔴 Threat Quarantined: Returning to inbox.', 'alert');
+        const backBtn = document.querySelector('div[act="19"], div[aria-label="Back to Inbox"], .T-I.J-J5-Ji.lS, div[aria-label="Back to Sent"]');
+        if (backBtn) backBtn.click();
+        else window.history.back();
+      });
     }
 
-    threadContainer.parentNode.insertBefore(banner, threadContainer);
+    emailBody.parentNode.insertBefore(shield, emailBody);
   }
 
   function defangThreadLinks(container) {
-    const links = (container || document).querySelectorAll('div.a3s a, div.adn a, .ii.gt a');
+    const links = (container || document).querySelectorAll('a');
     links.forEach(link => {
       if (link.dataset.mailflowDefanged === 'true') return;
       link.dataset.mailflowDefanged = 'true';
@@ -1725,6 +1445,8 @@
       injectSidebarItem();
     }
 
+    checkOpenEmailThread();
+
     let hasRelevantChanges = false;
     if (mutations && mutations.length) {
       for (let i = 0; i < mutations.length; i++) {
@@ -1735,7 +1457,8 @@
           target.id === 'mailflow-toast-container' ||
           target.classList?.contains('mailflow-toast') ||
           target.classList?.contains('mailflow-row-action-item') ||
-          target.classList?.contains('mailflow-scan-btn')
+          target.classList?.contains('mailflow-scan-btn') ||
+          target.classList?.contains('mailflow-thread-shield')
         )) {
           continue;
         }

@@ -860,387 +860,190 @@ body.mailflow-active-mode #mailflow-placeholder-view {
 }
 
 /* ==========================================================================
-   4. Zero-Trust Email Pre-Open Interception Shield (Native Material 3 Overlay)
+   4. Native In-Place Thread Content Shield (Material 3 Cover Overlay)
    ========================================================================== */
-#mailflow-interception-overlay {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background-color: rgba(32, 33, 36, 0.45) !important;
-  backdrop-filter: blur(6px) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  z-index: 999999 !important;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  font-family: var(--mf-font) !important;
-  box-sizing: border-box !important;
-}
-
-#mailflow-interception-overlay.active {
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
-.mf-modal-card {
-  position: relative !important;
-  width: 90% !important;
-  max-width: 520px !important;
+.mailflow-thread-shield {
+  display: block !important;
+  width: 100% !important;
+  margin: 12px 0 20px 0 !important;
+  padding: 24px 28px !important;
+  border-radius: 16px !important;
   background: #ffffff !important;
-  border-radius: 28px !important;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2) !important;
   border: 1px solid #e0e4eb !important;
-  overflow: hidden !important;
-  padding: 32px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+  box-sizing: border-box !important;
+  font-family: var(--mf-font) !important;
+  transition: opacity 0.2s ease, transform 0.2s ease !important;
+}
+
+.mailflow-thread-shield.high {
+  background: #fdf2f2 !important;
+  border: 1.5px solid #f87171 !important;
+}
+
+.mailflow-thread-shield.moderate {
+  background: #fefce8 !important;
+  border: 1.5px solid #facc15 !important;
+}
+
+.mf-shield-card {
   display: flex !important;
   flex-direction: column !important;
-  align-items: center !important;
-  text-align: center !important;
-  box-sizing: border-box !important;
-  transform: scale(0.95) translateY(8px);
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease !important;
-}
-
-#mailflow-interception-overlay.active .mf-modal-card {
-  transform: scale(1) translateY(0) !important;
-}
-
-/* Material 3 Linear Indeterminate Progress Bar */
-.mf-progress-bar {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
+  gap: 12px !important;
   width: 100% !important;
-  height: 4px !important;
-  background-color: #d3e3fd !important;
-  overflow: hidden !important;
-  display: none;
 }
 
-.mf-progress-bar.active {
-  display: block !important;
-}
-
-.mf-progress-bar-inner {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  bottom: 0 !important;
-  background-color: #0b57d0 !important;
-  animation: mf-indeterminate-bar 1.4s infinite cubic-bezier(0.65, 0.815, 0.735, 0.395) !important;
-}
-
-@keyframes mf-indeterminate-bar {
-  0% { left: -35%; right: 100%; }
-  60% { left: 100%; right: -90%; }
-  100% { left: 100%; right: -90%; }
-}
-
-/* Shield Emblem Icon Container */
-.mf-shield-emblem {
-  width: 64px !important;
-  height: 64px !important;
-  border-radius: 20px !important;
+.mf-shield-header {
   display: flex !important;
   align-items: center !important;
-  justify-content: center !important;
-  margin-bottom: 20px !important;
-  position: relative !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
 }
 
-.mf-shield-emblem.state-scanning {
-  background-color: #e8f0fe !important;
-  color: #0b57d0 !important;
-  animation: mf-pulse-shield 1.8s infinite ease-in-out !important;
-}
-
-.mf-shield-emblem.state-clean {
-  background-color: #e6f4ea !important;
-  color: #1e8e3e !important;
-  transform: scale(1.05) !important;
-}
-
-.mf-shield-emblem.state-moderate {
-  background-color: #fef7e0 !important;
-  color: #b06000 !important;
-}
-
-.mf-shield-emblem.state-high {
-  background-color: #fce8e6 !important;
-  color: #c5221f !important;
-  animation: mf-shake-alert 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
-}
-
-@keyframes mf-pulse-shield {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(11, 87, 208, 0.25); }
-  50% { transform: scale(1.06); box-shadow: 0 0 0 12px rgba(11, 87, 208, 0); }
-}
-
-@keyframes mf-shake-alert {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
-  40%, 60% { transform: translate3d(3px, 0, 0); }
-}
-
-.mf-emblem-icon {
-  width: 32px !important;
-  height: 32px !important;
-}
-
-/* Modal Typography */
-.mf-modal-title {
-  font-size: 19px !important;
-  font-weight: 600 !important;
-  color: #1f1f1f !important;
-  margin: 0 0 8px 0 !important;
-  line-height: 1.3 !important;
-  letter-spacing: -0.2px !important;
-}
-
-.mf-modal-subtitle {
-  font-size: 13px !important;
-  color: #5f6368 !important;
-  margin: 0 0 20px 0 !important;
-  line-height: 1.5 !important;
-  max-width: 440px !important;
-}
-
-/* Email Subject / Sender Meta Strip */
-.mf-meta-strip {
-  width: 100% !important;
-  background-color: #f8f9fa !important;
-  border: 1px solid #e0e4eb !important;
-  border-radius: 12px !important;
-  padding: 10px 14px !important;
-  margin-bottom: 20px !important;
-  text-align: left !important;
-  box-sizing: border-box !important;
-}
-
-.mf-meta-subject {
-  font-size: 12.5px !important;
-  font-weight: 600 !important;
-  color: #202124 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
-.mf-meta-sender {
-  font-size: 11.5px !important;
-  color: #5f6368 !important;
-  margin-top: 2px !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
-/* Threat Breakdown Signals Box */
-.mf-signals-box {
-  width: 100% !important;
-  background-color: #ffffff !important;
-  border-radius: 12px !important;
-  padding: 12px 14px !important;
-  margin-bottom: 24px !important;
-  text-align: left !important;
-  box-sizing: border-box !important;
-}
-
-.mf-signals-box.moderate {
-  background-color: #fef7e0 !important;
-  border: 1px solid #f9ab00 !important;
-}
-
-.mf-signals-box.high {
-  background-color: #fce8e6 !important;
-  border: 1px solid #f28b82 !important;
-}
-
-.mf-signals-title {
+.mf-shield-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 3px 10px !important;
+  border-radius: 20px !important;
   font-size: 11px !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-  margin-bottom: 8px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
+  letter-spacing: 0.4px !important;
 }
 
-.mf-signals-box.moderate .mf-signals-title {
-  color: #b06000 !important;
+.mf-shield-badge.high {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #f87171 !important;
 }
 
-.mf-signals-box.high .mf-signals-title {
-  color: #c5221f !important;
+.mf-shield-badge.moderate {
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
+  border: 1px solid #fbbf24 !important;
 }
 
-.mf-signals-list {
+.mf-badge-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background-color: currentColor !important;
+}
+
+.mf-shield-meta {
+  font-size: 11.5px !important;
+  color: #5f6368 !important;
+  font-family: monospace !important;
+}
+
+.mf-shield-title {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #1f1f1f !important;
   margin: 0 !important;
-  padding: 0 0 0 16px !important;
-  font-size: 12px !important;
-  line-height: 1.6 !important;
-  color: #3c4043 !important;
+  line-height: 1.3 !important;
 }
 
-.mf-signals-box.high .mf-signals-list {
-  color: #5f2120 !important;
+.mf-shield-desc {
+  font-size: 13px !important;
+  color: #444746 !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
 }
 
-/* Action Buttons */
-.mf-modal-actions {
+.mf-shield-signals {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  font-size: 11.5px !important;
+  color: #374151 !important;
   display: flex !important;
   flex-direction: column !important;
-  align-items: center !important;
-  gap: 12px !important;
-  width: 100% !important;
+  gap: 4px !important;
 }
 
-.mf-btn-primary {
-  height: 40px !important;
-  width: 100% !important;
-  border-radius: 20px !important;
-  border: none !important;
-  background-color: #0b57d0 !important;
-  color: #ffffff !important;
-  font-family: inherit !important;
-  font-size: 13.5px !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  transition: all 0.15s ease !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
-}
-
-.mf-btn-primary:hover {
-  background-color: #0842a0 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
-}
-
-.mf-btn-warning-proceed {
-  height: 40px !important;
-  width: 100% !important;
-  border-radius: 20px !important;
-  border: 1px solid #dadce0 !important;
-  background-color: #ffffff !important;
-  color: #3c4043 !important;
-  font-family: inherit !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  transition: all 0.15s ease !important;
-}
-
-.mf-btn-warning-proceed:hover {
-  background-color: #f1f3f4 !important;
-  border-color: #c4c7c5 !important;
-}
-
-.mf-btn-danger-quarantine {
-  height: 40px !important;
-  width: 100% !important;
-  border-radius: 20px !important;
-  border: none !important;
-  background-color: #0b57d0 !important;
-  color: #ffffff !important;
-  font-family: inherit !important;
-  font-size: 13.5px !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  transition: all 0.15s ease !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
-}
-
-.mf-btn-danger-quarantine:hover {
-  background-color: #0842a0 !important;
-}
-
-.mf-btn-subtle-link {
-  background: none !important;
-  border: none !important;
-  color: #747775 !important;
-  font-family: inherit !important;
-  font-size: 12px !important;
-  cursor: pointer !important;
-  text-decoration: underline !important;
-  padding: 4px 8px !important;
-  transition: color 0.15s ease !important;
-}
-
-.mf-btn-subtle-link:hover {
-  color: #c5221f !important;
-}
-
-/* Top In-Thread Warning Banner (Material 3 Native) */
-.mailflow-thread-banner {
-  margin: 12px 16px !important;
-  padding: 12px 16px !important;
-  border-radius: 12px !important;
-  display: flex !important;
-  align-items: flex-start !important;
-  gap: 12px !important;
-  font-family: var(--mf-font) !important;
-  box-sizing: border-box !important;
-  animation: mailflow-drawer-in 0.25s ease !important;
-}
-
-.mailflow-thread-banner.moderate {
-  background-color: #fef7e0 !important;
-  border: 1px solid #f9ab00 !important;
-  color: #3c4043 !important;
-}
-
-.mailflow-thread-banner.high {
-  background-color: #fce8e6 !important;
-  border: 1px solid #ea4335 !important;
-  color: #1f1f1f !important;
-}
-
-.mailflow-banner-icon {
-  width: 20px !important;
-  height: 20px !important;
-  flex-shrink: 0 !important;
-  margin-top: 1px !important;
-}
-
-.mailflow-banner-content {
-  flex: 1 !important;
-}
-
-.mailflow-banner-title {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  margin-bottom: 2px !important;
-}
-
-.mailflow-thread-banner.moderate .mailflow-banner-title {
-  color: #b06000 !important;
-}
-
-.mailflow-thread-banner.high .mailflow-banner-title {
-  color: #c5221f !important;
-}
-
-.mailflow-banner-text {
-  font-size: 12px !important;
+.mf-signal-item {
   line-height: 1.4 !important;
-  color: #444746 !important;
+}
+
+.mf-shield-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-top: 4px !important;
+  flex-wrap: wrap !important;
+}
+
+.mf-shield-btn-proceed {
+  height: 36px !important;
+  padding: 0 18px !important;
+  border-radius: 18px !important;
+  border: 1px solid #c4c7c5 !important;
+  background-color: #ffffff !important;
+  color: #1f1f1f !important;
+  font-family: inherit !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.mf-shield-btn-proceed:hover {
+  background-color: #f1f3f4 !important;
+  border-color: #8e918f !important;
+}
+
+.mf-shield-btn-quarantine {
+  height: 36px !important;
+  padding: 0 18px !important;
+  border-radius: 18px !important;
+  border: none !important;
+  background-color: #b3261e !important;
+  color: #ffffff !important;
+  font-family: inherit !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.mf-shield-btn-quarantine:hover {
+  background-color: #8c1d18 !important;
+}
+
+/* Inline Warning Alert Strip */
+.mailflow-inthread-alert {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 14px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  margin-bottom: 14px !important;
+  box-sizing: border-box !important;
+  font-family: var(--mf-font) !important;
+}
+
+.mailflow-inthread-alert.high {
+  background-color: #fee2e2 !important;
+  border: 1px solid #fca5a5 !important;
+  color: #7f1d1d !important;
+}
+
+.mailflow-inthread-alert.moderate {
+  background-color: #fef3c7 !important;
+  border: 1px solid #fde68a !important;
+  color: #78350f !important;
+}
+
+.mf-alert-title {
+  font-weight: 700 !important;
+}
+
+.mf-alert-text {
+  flex: 1 !important;
 }
 
 /* Defanged Link Indicator */
@@ -1255,59 +1058,49 @@ a[data-mailflow-defanged="true"] {
   border: 1px dashed #f28b82 !important;
 }
 
-/* Dark Mode Support for Material 3 Overlay */
-[data-theme="dark"] .mf-modal-card,
-body.dark .mf-modal-card {
+/* Dark Mode support */
+[data-theme="dark"] .mailflow-thread-shield,
+body.dark .mailflow-thread-shield {
   background: #1e1f20 !important;
   border-color: #444746 !important;
-  color: #e3e3e3 !important;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
 }
 
-[data-theme="dark"] .mf-modal-title,
-body.dark .mf-modal-title {
+[data-theme="dark"] .mailflow-thread-shield.high,
+body.dark .mailflow-thread-shield.high {
+  background: #2a1515 !important;
+  border-color: #7f1d1d !important;
+}
+
+[data-theme="dark"] .mailflow-thread-shield.moderate,
+body.dark .mailflow-thread-shield.moderate {
+  background: #2a2215 !important;
+  border-color: #78350f !important;
+}
+
+[data-theme="dark"] .mf-shield-title,
+body.dark .mf-shield-title {
   color: #f2f2f2 !important;
 }
 
-[data-theme="dark"] .mf-modal-subtitle,
-body.dark .mf-modal-subtitle {
+[data-theme="dark"] .mf-shield-desc,
+body.dark .mf-shield-desc {
   color: #c4c7c5 !important;
 }
 
-[data-theme="dark"] .mf-meta-strip,
-body.dark .mf-meta-strip {
-  background-color: #2b2b2b !important;
-  border-color: #444746 !important;
-}
-
-[data-theme="dark"] .mf-meta-subject,
-body.dark .mf-meta-subject {
+[data-theme="dark"] .mf-shield-signals,
+body.dark .mf-shield-signals {
+  background: rgba(255, 255, 255, 0.05) !important;
   color: #e3e3e3 !important;
 }
 
-[data-theme="dark"] .mf-meta-sender,
-body.dark .mf-meta-sender {
-  color: #a8aaad !important;
-}
-
-[data-theme="dark"] .mf-btn-warning-proceed,
-body.dark .mf-btn-warning-proceed {
+[data-theme="dark"] .mf-shield-btn-proceed,
+body.dark .mf-shield-btn-proceed {
   background-color: #2b2b2b !important;
   border-color: #444746 !important;
   color: #e3e3e3 !important;
 }
 
-[data-theme="dark"] .mf-btn-warning-proceed:hover,
-body.dark .mf-btn-warning-proceed:hover {
+[data-theme="dark"] .mf-shield-btn-proceed:hover,
+body.dark .mf-shield-btn-proceed:hover {
   background-color: #383838 !important;
-}
-
-[data-theme="dark"] .mf-btn-subtle-link,
-body.dark .mf-btn-subtle-link {
-  color: #a8aaad !important;
-}
-
-[data-theme="dark"] .mf-btn-subtle-link:hover,
-body.dark .mf-btn-subtle-link:hover {
-  color: #f28b82 !important;
 }
