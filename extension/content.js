@@ -24,7 +24,7 @@
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="m9 12 2 2 4-4"/>
     </svg>`,
-    shieldRow: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    shieldRow: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="m9 12 2 2 4-4"/>
     </svg>`,
@@ -35,7 +35,7 @@
     refresh: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
     </svg>`,
-    check: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    check: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="20 6 9 17 4 12"/>
     </svg>`
   };
@@ -82,11 +82,7 @@
   function applySettings() {
     const rowItems = document.querySelectorAll('.mailflow-row-action-item');
     rowItems.forEach(item => {
-      if (currentSettings.showInlineRows) {
-        item.classList.remove('mailflow-hidden-by-setting');
-      } else {
-        item.classList.add('mailflow-hidden-by-setting');
-      }
+      item.style.display = currentSettings.showInlineRows ? 'inline-flex' : 'none';
     });
 
     const sidebarWrapper = document.getElementById('mailflow-aim-wrapper');
@@ -347,7 +343,6 @@
       document.body.classList.add('mailflow-active-mode');
       if (navItem) navItem.classList.add('active');
 
-      // Deselect native Gmail active folder indicators
       document.querySelectorAll('div[role="navigation"] .nZ').forEach(el => {
         if (el !== navItem) {
           el.classList.remove('nZ');
@@ -387,7 +382,8 @@
 
   /**
    * =========================================================================
-   * MODULE 4: EMAIL ROW SCAN BUTTON INJECTION
+   * MODULE 4: UNIVERSAL EMAIL ROW SCAN BUTTON INJECTION (JUST ICON)
+   * Guaranteed to inject across all email entities, tabs, and dynamic rows
    * =========================================================================
    */
 
@@ -419,10 +415,7 @@
     const { sender, subject } = extractRowMetadata(row);
 
     btn.className = 'mailflow-scan-btn scanning';
-    btn.innerHTML = `
-      <div class="mailflow-scan-spinner"></div>
-      <span class="mailflow-scan-label">Scanning</span>
-    `;
+    btn.innerHTML = `<div class="mailflow-scan-spinner"></div>`;
 
     try {
       const startTime = performance.now();
@@ -440,10 +433,7 @@
       if (response.ok) {
         const data = await response.json();
         btn.className = 'mailflow-scan-btn verdict-safe';
-        btn.innerHTML = `
-          ${ICONS.check}
-          <span class="mailflow-scan-label">Safe (${data.latency_ms || elapsed}ms)</span>
-        `;
+        btn.innerHTML = ICONS.check;
 
         showToast(
           `MailFlow: "${subject.substring(0, 30)}${subject.length > 30 ? '...' : ''}" from ${sender} is SAFE (${data.latency_ms || elapsed}ms)`,
@@ -454,10 +444,7 @@
       }
     } catch (err) {
       btn.className = 'mailflow-scan-btn backend-offline';
-      btn.innerHTML = `
-        ${ICONS.shieldRow}
-        <span class="mailflow-scan-label">Offline</span>
-      `;
+      btn.innerHTML = ICONS.shieldRow;
 
       showToast(
         '⚠️ Backend offline (:8000). Start ./start_backend.sh to scan threads.',
@@ -467,59 +454,82 @@
 
     setTimeout(() => {
       btn.className = 'mailflow-scan-btn';
-      btn.innerHTML = `
-        ${ICONS.shieldRow}
-        <span class="mailflow-scan-label">Scan</span>
-      `;
+      btn.innerHTML = ICONS.shieldRow;
     }, 2800);
   }
 
-  function injectScanButtonIntoRow(row) {
-    if (row.dataset.mailflowInjected === 'true') {
-      return;
-    }
-
-    const actionToolbar = row.querySelector('ul.bq4, ul.aqL, ul[role="toolbar"], td.bq9 ul, .bq8 ul, .a4y ul, ul.bqe, ul.bqZ');
-    
+  function createScanButton(row) {
     const actionItem = document.createElement('li');
-    actionItem.className = 'mailflow-row-action-item';
-    if (!currentSettings.showInlineRows) {
-      actionItem.classList.add('mailflow-hidden-by-setting');
-    }
+    actionItem.className = 'mailflow-row-action-item bqX';
     actionItem.setAttribute('role', 'button');
-    actionItem.setAttribute('title', 'Scan email with MailFlow SME Shield');
+    actionItem.setAttribute('title', 'MailFlow Scan');
+    actionItem.setAttribute('aria-label', 'MailFlow Scan');
+
+    if (!currentSettings.showInlineRows) {
+      actionItem.style.display = 'none';
+    }
 
     const scanBtn = document.createElement('button');
     scanBtn.type = 'button';
     scanBtn.className = 'mailflow-scan-btn';
-    scanBtn.setAttribute('aria-label', 'Scan email with MailFlow');
-    scanBtn.innerHTML = `
-      ${ICONS.shieldRow}
-      <span class="mailflow-scan-label">Scan</span>
-    `;
+    scanBtn.setAttribute('aria-label', 'MailFlow Scan');
+    scanBtn.setAttribute('title', 'MailFlow Scan');
+    scanBtn.innerHTML = ICONS.shieldRow;
 
     scanBtn.addEventListener('click', (e) => handleScanClick(row, scanBtn, e));
     actionItem.appendChild(scanBtn);
 
+    return actionItem;
+  }
+
+  function ensureRowHasScanButton(row) {
+    if (!row) return;
+
+    // Check if the row already has our button in its toolbar
+    const existing = row.querySelector('.mailflow-row-action-item');
+    if (existing) return;
+
+    // Find Gmail's native hover action toolbar
+    const actionToolbar = row.querySelector('ul.bq4, ul.aqL, ul[role="toolbar"], td.bq9 ul, .bq8 ul, .a4y ul, td.yX ul, ul.bqe, ul.bqZ');
+    
     if (actionToolbar) {
-      actionToolbar.insertBefore(actionItem, actionToolbar.firstChild);
-      row.dataset.mailflowInjected = 'true';
+      const button = createScanButton(row);
+      actionToolbar.insertBefore(button, actionToolbar.firstChild);
     } else {
+      // Fallback container if ul is not created yet
       const actionCell = row.querySelector('td.yX, td.bq9, td.a4y, td.xY');
-      if (actionCell) {
-        actionCell.appendChild(actionItem);
-        row.dataset.mailflowInjected = 'true';
+      if (actionCell && !actionCell.querySelector('.mailflow-row-action-item')) {
+        const button = createScanButton(row);
+        actionCell.appendChild(button);
       }
     }
   }
 
-  function scanEmailRows() {
-    const rows = document.querySelectorAll('tr.zA, tr[role="row"]');
+  function scanAllEmailRows() {
+    const rows = document.querySelectorAll('tr.zA, .zA');
     rows.forEach(row => {
-      if (row.querySelector('.yP, .zF, .bog, .bqe, .y6') && !row.dataset.mailflowInjected) {
-        injectScanButtonIntoRow(row);
-      }
+      ensureRowHasScanButton(row);
     });
+  }
+
+  /**
+   * Delegated hover interceptor: Whenever user hovers over ANY row,
+   * verify and inject the button instantly.
+   */
+  function setupHoverDelegation() {
+    document.addEventListener('mouseover', (e) => {
+      const row = e.target.closest('tr.zA, .zA');
+      if (row) {
+        ensureRowHasScanButton(row);
+      }
+    }, { capture: true, passive: true });
+
+    document.addEventListener('focusin', (e) => {
+      const row = e.target.closest('tr.zA, .zA');
+      if (row) {
+        ensureRowHasScanButton(row);
+      }
+    }, { capture: true, passive: true });
   }
 
   /**
@@ -537,15 +547,16 @@
 
     if (scanDebounceTimer) clearTimeout(scanDebounceTimer);
     scanDebounceTimer = setTimeout(() => {
-      scanEmailRows();
-    }, 100);
+      scanAllEmailRows();
+    }, 80);
   }
 
   async function init() {
     syncSettings();
     await checkBackendHeartbeat();
     injectSidebarItem();
-    scanEmailRows();
+    scanAllEmailRows();
+    setupHoverDelegation();
     syncMailFlowState();
 
     window.removeEventListener('hashchange', handleHashChange);
