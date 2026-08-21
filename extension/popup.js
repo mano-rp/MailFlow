@@ -1,23 +1,28 @@
-// MailFlow Shield - Minimalist Popup Controller
+// MailFlow Shield - Settings Popup Controller
 
 const API_BASE_URL = 'http://localhost:8000';
 
 const DOM = {
+  html: document.documentElement,
   statusCard: document.getElementById('status-card'),
   statusTitle: document.getElementById('status-title'),
   statusSubtitle: document.getElementById('status-subtitle'),
   statusLatency: document.getElementById('status-latency'),
-  btnRefresh: document.getElementById('btn-refresh'),
+  btnCheckConnection: document.getElementById('btn-check-connection'),
   offlineBanner: document.getElementById('offline-banner'),
   toggleInlineScan: document.getElementById('toggle-inline-scan'),
   toggleAutoShield: document.getElementById('toggle-auto-shield'),
+  themeBtnLight: document.getElementById('theme-btn-light'),
+  themeBtnDark: document.getElementById('theme-btn-dark'),
 };
 
 const DEFAULT_SETTINGS = {
+  theme: 'light',
   showInlineRows: true,
   autoScan: true,
 };
 
+// Storage helper with fallback
 const storage = {
   get: (keys) => {
     return new Promise((resolve) => {
@@ -49,11 +54,29 @@ const storage = {
   }
 };
 
+// Theme Management
+function setTheme(theme) {
+  DOM.html.setAttribute('data-theme', theme);
+  if (theme === 'dark') {
+    DOM.themeBtnDark.classList.add('active');
+    DOM.themeBtnDark.setAttribute('aria-checked', 'true');
+    DOM.themeBtnLight.classList.remove('active');
+    DOM.themeBtnLight.setAttribute('aria-checked', 'false');
+  } else {
+    DOM.themeBtnLight.classList.add('active');
+    DOM.themeBtnLight.setAttribute('aria-checked', 'true');
+    DOM.themeBtnDark.classList.remove('active');
+    DOM.themeBtnDark.setAttribute('aria-checked', 'false');
+  }
+  storage.set({ theme });
+}
+
+// Backend Health Verification
 async function checkBackendHealth() {
   const start = performance.now();
 
   DOM.statusCard.className = 'status-card checking';
-  DOM.statusTitle.textContent = 'Checking...';
+  DOM.statusTitle.textContent = 'Checking connection...';
   DOM.statusSubtitle.textContent = 'http://localhost:8000';
   DOM.statusLatency.textContent = '...';
 
@@ -89,10 +112,21 @@ async function checkBackendHealth() {
   }
 }
 
+// Initialize Popup
 async function init() {
   const settings = await storage.get(DEFAULT_SETTINGS);
+
+  // Apply Theme
+  const currentTheme = settings.theme || 'light';
+  setTheme(currentTheme);
+
+  // Apply Toggle Settings
   DOM.toggleInlineScan.checked = settings.showInlineRows ?? true;
   DOM.toggleAutoShield.checked = settings.autoScan ?? true;
+
+  // Listeners
+  DOM.themeBtnLight.addEventListener('click', () => setTheme('light'));
+  DOM.themeBtnDark.addEventListener('click', () => setTheme('dark'));
 
   DOM.toggleInlineScan.addEventListener('change', (e) => {
     storage.set({ showInlineRows: e.target.checked });
@@ -102,7 +136,7 @@ async function init() {
     storage.set({ autoScan: e.target.checked });
   });
 
-  DOM.btnRefresh.addEventListener('click', checkBackendHealth);
+  DOM.btnCheckConnection.addEventListener('click', checkBackendHealth);
 
   checkBackendHealth();
 }
