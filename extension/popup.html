@@ -46,11 +46,11 @@
       </div>
     </header>
 
-    <!-- Subtle End-User Status Bar -->
+    <!-- Server Status Bar -->
     <div class="status-bar">
       <div class="status-left">
         <span id="status-dot" class="status-dot checking"></span>
-        <span id="status-text" class="status-text">Checking status...</span>
+        <span id="status-text" class="status-text">MailFlow Server</span>
       </div>
       <button id="btn-check-connection" class="btn-refresh" title="Check Connection" aria-label="Check Connection">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -62,31 +62,35 @@
     <!-- Hairline Divider -->
     <hr class="section-divider">
 
-    <!-- Settings Section -->
-    <section class="settings-section">
-      <div class="section-label">Preferences</div>
+    <!-- Quick Scans Section -->
+    <section class="actions-section">
+      <div class="section-label">Quick Scans</div>
 
-      <label class="setting-row" for="toggle-inline-scan">
-        <div class="setting-info">
-          <span class="setting-name">Inline Row Scan</span>
-          <span class="setting-desc">Show quick scan actions in Gmail email rows</span>
+      <button id="btn-scan-page" class="pop-action-btn" title="Scan all visible emails on the current page">
+        <div class="btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
         </div>
-        <div class="m3-switch">
-          <input type="checkbox" id="toggle-inline-scan" checked>
-          <span class="m3-track"><span class="m3-thumb"></span></span>
+        <div class="btn-text-group">
+          <span class="btn-title">Scan All Emails in Page</span>
+          <span class="btn-desc">Evaluate all visible emails in current view</span>
         </div>
-      </label>
+      </button>
 
-      <label class="setting-row" for="toggle-auto-shield">
-        <div class="setting-info">
-          <span class="setting-name">Suspected Emails Hub</span>
-          <span class="setting-desc">Enable left sidebar navigation & quarantine view</span>
+      <button id="btn-scan-unread" class="pop-action-btn" title="Scan all unopened / unread emails">
+        <div class="btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
         </div>
-        <div class="m3-switch">
-          <input type="checkbox" id="toggle-auto-shield" checked>
-          <span class="m3-track"><span class="m3-thumb"></span></span>
+        <div class="btn-text-group">
+          <span class="btn-title">Scan Unopened Mails</span>
+          <span class="btn-desc">Evaluate all unread emails on the page</span>
         </div>
-      </label>
+      </button>
     </section>
 
     <!-- Hairline Divider -->

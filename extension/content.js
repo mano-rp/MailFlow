@@ -1067,6 +1067,83 @@
     }, 150);
   }
 
+  /**
+   * Bulk Scanning Utilities
+   */
+  async function scanAllVisibleEmails() {
+    const rows = Array.from(document.querySelectorAll('tr.zA, .zA')).filter(row => {
+      return row.offsetParent !== null && row.style.display !== 'none';
+    });
+
+    if (rows.length === 0) {
+      showToast('No emails found on the current page to scan.', 'info');
+      return;
+    }
+
+    showToast(`Scanning ${rows.length} email(s) on current page...`, 'info');
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.style.display === 'none') continue;
+
+      let btn = row.querySelector('.mailflow-scan-btn');
+      if (!btn) {
+        ensureRowHasScanButton(row);
+        btn = row.querySelector('.mailflow-scan-btn');
+      }
+
+      if (btn && !btn.classList.contains('scanning')) {
+        await handleScanClick(row, btn);
+        await new Promise(r => setTimeout(r, 150));
+      }
+    }
+  }
+
+  async function scanUnopenedEmails() {
+    const rows = Array.from(document.querySelectorAll('tr.zA, .zA')).filter(row => {
+      if (row.offsetParent === null || row.style.display === 'none') return false;
+      const isUnread = row.classList.contains('zE') || !row.classList.contains('yO') || row.querySelector('.zE');
+      return Boolean(isUnread);
+    });
+
+    if (rows.length === 0) {
+      showToast('No unopened emails found on current page.', 'info');
+      return;
+    }
+
+    showToast(`Scanning ${rows.length} unopened email(s)...`, 'info');
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.style.display === 'none') continue;
+
+      let btn = row.querySelector('.mailflow-scan-btn');
+      if (!btn) {
+        ensureRowHasScanButton(row);
+        btn = row.querySelector('.mailflow-scan-btn');
+      }
+
+      if (btn && !btn.classList.contains('scanning')) {
+        await handleScanClick(row, btn);
+        await new Promise(r => setTimeout(r, 150));
+      }
+    }
+  }
+
+  // Chrome Extension Runtime Message Listener
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (request.action === 'SCAN_ALL_PAGE') {
+        scanAllVisibleEmails();
+        sendResponse({ status: 'started' });
+      } else if (request.action === 'SCAN_UNREAD') {
+        scanUnopenedEmails();
+        sendResponse({ status: 'started' });
+      }
+      return true;
+    });
+  }
+
   async function init() {
     loadStoredThreats();
     syncSettings();

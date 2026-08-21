@@ -1,4 +1,4 @@
-// MailFlow Shield - Minimalist Settings Popup Controller
+// MailFlow Shield - Minimalist Settings & Quick Scans Controller
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -7,16 +7,14 @@ const DOM = {
   statusDot: document.getElementById('status-dot'),
   statusText: document.getElementById('status-text'),
   btnCheckConnection: document.getElementById('btn-check-connection'),
-  toggleInlineScan: document.getElementById('toggle-inline-scan'),
-  toggleAutoShield: document.getElementById('toggle-auto-shield'),
+  btnScanPage: document.getElementById('btn-scan-page'),
+  btnScanUnread: document.getElementById('btn-scan-unread'),
   themeBtnLight: document.getElementById('theme-btn-light'),
   themeBtnDark: document.getElementById('theme-btn-dark'),
 };
 
 const DEFAULT_SETTINGS = {
   theme: 'light',
-  showInlineRows: true,
-  autoScan: true,
 };
 
 // Storage helper with fallback
@@ -68,10 +66,10 @@ function setTheme(theme) {
   storage.set({ theme });
 }
 
-// Backend Health Verification (End-User Status)
+// Backend Health Verification
 async function checkBackendHealth() {
   DOM.statusDot.className = 'status-dot checking';
-  DOM.statusText.textContent = 'Checking status...';
+  DOM.statusText.textContent = 'MailFlow Server';
 
   try {
     const controller = new AbortController();
@@ -86,13 +84,27 @@ async function checkBackendHealth() {
 
     if (res.ok) {
       DOM.statusDot.className = 'status-dot protected';
-      DOM.statusText.textContent = 'Protected';
+      DOM.statusText.textContent = 'MailFlow Server';
     } else {
       throw new Error(`HTTP ${res.status}`);
     }
   } catch (err) {
-    DOM.statusDot.className = 'status-dot paused';
-    DOM.statusText.textContent = 'Protection Paused';
+    DOM.statusDot.className = 'status-dot offline';
+    DOM.statusText.textContent = 'MailFlow Server';
+  }
+}
+
+// Send command to active tab
+function triggerTabAction(action) {
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs && tabs[0] && tabs[0].id) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: action }, () => {
+          // Close popup after dispatching
+          window.close();
+        });
+      }
+    });
   }
 }
 
@@ -104,23 +116,18 @@ async function init() {
   const currentTheme = settings.theme || 'light';
   setTheme(currentTheme);
 
-  // Apply Toggle Settings
-  DOM.toggleInlineScan.checked = settings.showInlineRows ?? true;
-  DOM.toggleAutoShield.checked = settings.autoScan ?? true;
-
   // Listeners
   DOM.themeBtnLight.addEventListener('click', () => setTheme('light'));
   DOM.themeBtnDark.addEventListener('click', () => setTheme('dark'));
-
-  DOM.toggleInlineScan.addEventListener('change', (e) => {
-    storage.set({ showInlineRows: e.target.checked });
-  });
-
-  DOM.toggleAutoShield.addEventListener('change', (e) => {
-    storage.set({ autoScan: e.target.checked });
-  });
-
   DOM.btnCheckConnection.addEventListener('click', checkBackendHealth);
+
+  if (DOM.btnScanPage) {
+    DOM.btnScanPage.addEventListener('click', () => triggerTabAction('SCAN_ALL_PAGE'));
+  }
+
+  if (DOM.btnScanUnread) {
+    DOM.btnScanUnread.addEventListener('click', () => triggerTabAction('SCAN_UNREAD'));
+  }
 
   checkBackendHealth();
 }
