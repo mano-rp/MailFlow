@@ -10,6 +10,11 @@
   let isMailFlowTabActive = false;
   let observer = null;
   let scanDebounceTimer = null;
+  let currentSettings = {
+    autoScan: true,
+    defangLinks: true,
+    showInlineRows: true,
+  };
 
   // SVG Icons
   const ICONS = {
@@ -41,6 +46,44 @@
       <polyline points="22 4 12 14.01 9 11.01"/>
     </svg>`
   };
+
+  /**
+   * =========================================================================
+   * MODULE 0: SETTINGS SYNC
+   * =========================================================================
+   */
+
+  function syncSettings() {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      const storageArea = chrome.storage.sync || chrome.storage.local;
+      storageArea.get(currentSettings, (items) => {
+        if (items) {
+          currentSettings = { ...currentSettings, ...items };
+          applySettings();
+        }
+      });
+
+      chrome.storage.onChanged.addListener((changes, areaName) => {
+        for (const [key, change] of Object.entries(changes)) {
+          if (key in currentSettings) {
+            currentSettings[key] = change.newValue;
+          }
+        }
+        applySettings();
+      });
+    }
+  }
+
+  function applySettings() {
+    const rowButtons = document.querySelectorAll('.mailflow-row-action-item');
+    rowButtons.forEach(btn => {
+      if (currentSettings.showInlineRows) {
+        btn.classList.remove('mailflow-hidden-by-setting');
+      } else {
+        btn.classList.add('mailflow-hidden-by-setting');
+      }
+    });
+  }
 
   /**
    * =========================================================================
@@ -85,7 +128,6 @@
 
     container.appendChild(toast);
 
-    // Auto dismiss after 4.5 seconds
     setTimeout(() => {
       dismissToast(toast);
     }, 4500);
@@ -346,7 +388,6 @@
    */
 
   function extractRowMetadata(row) {
-    // 1. Extract Sender
     let sender = 'Unknown Sender';
     const senderEl = row.querySelector('.yP, .zF, span[email], .bA4 span, .yW span, span[name]');
     if (senderEl) {
@@ -356,7 +397,6 @@
                'Unknown Sender';
     }
 
-    // 2. Extract Subject
     let subject = 'No Subject';
     const subjectEl = row.querySelector('.bog, .bqe, span.bqe, .y6 span');
     if (subjectEl) {
@@ -374,7 +414,6 @@
 
     const { sender, subject } = extractRowMetadata(row);
 
-    // Enter scanning UI state
     btn.className = 'mailflow-scan-btn scanning';
     btn.innerHTML = `
       <div class="mailflow-scan-spinner"></div>
@@ -396,7 +435,6 @@
 
       if (response.ok) {
         const data = await response.json();
-        // Safe Verdict State
         btn.className = 'mailflow-scan-btn verdict-safe';
         btn.innerHTML = `
           ${ICONS.check}
@@ -411,7 +449,6 @@
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (err) {
-      // Error State
       btn.className = 'mailflow-scan-btn verdict-error';
       btn.innerHTML = `
         ${ICONS.alert}
@@ -426,7 +463,6 @@
       );
     }
 
-    // Reset button after 2.5 seconds
     setTimeout(() => {
       btn.className = 'mailflow-scan-btn';
       btn.innerHTML = `
@@ -441,12 +477,13 @@
       return;
     }
 
-    // Locate the row's hover action bar
     const actionToolbar = row.querySelector('ul.bq4, ul.aqL, ul[role="toolbar"], td.bq9 ul, .bq8 ul, .a4y ul, ul.bqe, ul.bqZ');
     
-    // Create the scan action button element
     const actionItem = document.createElement('li');
     actionItem.className = 'mailflow-row-action-item';
+    if (!currentSettings.showInlineRows) {
+      actionItem.classList.add('mailflow-hidden-by-setting');
+    }
     actionItem.setAttribute('role', 'button');
     actionItem.setAttribute('title', 'Scan email with MailFlow SME Shield');
 
@@ -463,11 +500,9 @@
     actionItem.appendChild(scanBtn);
 
     if (actionToolbar) {
-      // Prepend or insert nicely at start of action toolbar
       actionToolbar.insertBefore(actionItem, actionToolbar.firstChild);
       row.dataset.mailflowInjected = 'true';
     } else {
-      // If action toolbar isn't created yet by Gmail, check for the actions td cell
       const actionCell = row.querySelector('td.yX, td.bq9, td.a4y, td.xY');
       if (actionCell) {
         actionCell.appendChild(actionItem);
@@ -479,7 +514,6 @@
   function scanEmailRows() {
     const rows = document.querySelectorAll('tr.zA, tr[role="row"]');
     rows.forEach(row => {
-      // Check if it is a valid email row containing subject/sender elements
       if (row.querySelector('.yP, .zF, .bog, .bqe, .y6') && !row.dataset.mailflowInjected) {
         injectScanButtonIntoRow(row);
       }
@@ -493,12 +527,10 @@
    */
 
   function handleMutations() {
-    // Re-inject sidebar if removed
     if (!document.getElementById('mailflow-sidebar-nav-item')) {
       injectSidebarItem();
     }
 
-    // Debounced scan for email rows
     if (scanDebounceTimer) clearTimeout(scanDebounceTimer);
     scanDebounceTimer = setTimeout(() => {
       scanEmailRows();
@@ -506,6 +538,7 @@
   }
 
   function init() {
+    syncSettings();
     injectSidebarItem();
     scanEmailRows();
 
