@@ -36,30 +36,30 @@ def run_pipeline(payload: ScanPayload) -> ThreatRecord:
     steps: List[StepResult] = [step1, step2, step3, step4]
 
     # Cybersecurity composite scoring:
-    # Primary threat vector establishes the baseline, compounded by secondary indicators
+    # Primary threat vector establishes the baseline, compounded moderately by secondary indicators
     step_scores = [s.score for s in steps]
     primary_score = max(step_scores) if step_scores else 0.0
 
     if primary_score > 0:
         secondary_sum = sum(s for s in step_scores) - primary_score
-        composite = primary_score + (secondary_sum * 0.40)
+        composite = primary_score + (secondary_sum * 0.20)
 
-        # Compound Threat Multipliers (High-risk attack pairings)
-        # 1. Executive Secrecy/Urgency + Gift cards/Crypto/Payment redirection
-        if step1.score >= 35 and step2.score >= 35:
+        # Compound Threat Multipliers (Only high-threat combinations trigger high tier >= 75):
+        # 1. Lookalike domain + (Credentials OR Financial)
+        if step4.score >= 45 and (step3.score >= 25 or step2.score >= 25):
+            composite = max(composite, 82.0)
+
+        # 2. Executive Secrecy/Urgency + Gift Card / Crypto Extortion
+        if step1.score >= 25 and (any("Gift Card" in r or "Crypto" in r for r in step2.matched_rules)):
             composite = max(composite, 80.0)
 
-        # 2. Lookalike domain + Credential harvesting or Payment redirection
-        if step4.score >= 40 and (step3.score >= 30 or step2.score >= 30):
+        # 3. High-Risk Macro / Executable Payload Lures
+        if any("Macro" in r or "Executable" in r for r in step3.matched_rules):
             composite = max(composite, 85.0)
 
-        # 3. Account Suspension / Intimidation + Credential Verification
-        if step1.score >= 30 and step3.score >= 35:
-            composite = max(composite, 78.0)
-
-        # 4. Bank Account Redirection / IBAN Tampering + Urgency/Invoice
-        if step2.score >= 45 and (step1.score >= 25 or step2.score >= 65):
-            composite = max(composite, 78.0)
+        # 4. Critical Triple Threat: Account Suspension + Credential Verification + Lookalike / Strict Urgency
+        if step1.score >= 45 and step3.score >= 45 and step4.score >= 35:
+            composite = max(composite, 82.0)
 
         final_score = int(min(max(round(composite), 0), 100))
     else:
@@ -70,15 +70,15 @@ def run_pipeline(payload: ScanPayload) -> ThreatRecord:
         tier = "high"
         color = "red"
         action = "quarantine_slide"
-        if any("QR Code" in r for r in step3.matched_rules):
-            threat_type = "Quishing / QR Code Trap"
-        elif any("Executive Impersonation" in r or "Secrecy" in r for r in step1.matched_rules) and step2.score >= 30:
-            threat_type = "Executive Impersonation / CEO Fraud"
-        elif any("Bank Account Redirection" in r for r in step2.matched_rules):
-            threat_type = "Bank Redirection / IBAN Hijack"
-        elif step2.score >= 35:
+        if any("Macro" in r or "Executable" in r for r in step3.matched_rules):
+            threat_type = "Malicious Payload / Attachment Phish"
+        elif any("Gift Card" in r for r in step2.matched_rules) and step1.score >= 25:
+            threat_type = "Executive Impersonation / Gift Card Fraud"
+        elif step4.score >= 45:
+            threat_type = "Lookalike Domain / Targeted Phishing"
+        elif step2.score >= 50:
             threat_type = "Urgent Financial / BEC Fraud"
-        elif step3.score >= 35 or step4.score >= 35:
+        elif step3.score >= 50:
             threat_type = "Credential Harvesting / Phishing Attack"
         else:
             threat_type = "High-Risk Social Engineering"
@@ -88,12 +88,12 @@ def run_pipeline(payload: ScanPayload) -> ThreatRecord:
         action = "flag_warning"
         if any("QR Code" in r for r in step3.matched_rules):
             threat_type = "QR Code Verification Notice"
-        elif any("Bank Account Redirection" in r for r in step2.matched_rules):
+        elif any("Bank Account Redirection" in r or "Audit" in r for r in step2.matched_rules):
             threat_type = "Unverified Bank Account Update"
-        elif step2.score >= 25:
+        elif step2.score >= 20:
             threat_type = "Unverified Invoice Reference"
         elif any("Executive Impersonation" in r or "Secrecy" in r for r in step1.matched_rules):
-            threat_type = "Executive Secrecy Lure"
+            threat_type = "Executive Urgency Lure"
         elif step3.score >= 25:
             threat_type = "Suspicious Auth / Portal Request"
         elif step1.score >= 20:

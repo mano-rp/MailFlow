@@ -1,7 +1,7 @@
 # MailFlow — SME Email Shield
 
 > **Native Gmail Threat Detection & Heuristic Defense Engine**  
-> Real-time email threat evaluation protecting businesses from Business Email Compromise (BEC), credential harvesting, invoice tampering, and lookalike domain attacks.
+> Real-time email threat evaluation protecting businesses from Business Email Compromise (BEC), credential harvesting, invoice tampering, quishing, and lookalike domain attacks.
 
 ---
 
@@ -28,28 +28,30 @@
 When an email is scanned, its sender, subject, and preview snippet are evaluated through a sub-50ms multi-vector heuristic engine across four security vectors:
 
 ### 1. Urgency & Psychological Coercion
-* **Mechanism:** Regex pattern matching evaluating coercive psychological triggers.
-* **Signals:** Time-pressure countdowns (`"within 24 hours"`, `"expires today"`), account suspension threats (`"account disabled"`, `"access revoked"`), and legal intimidation (`"final notice"`, `"lawsuit"`).
+* **Mechanism:** Regex pattern matching evaluating coercive psychological triggers and executive pretexts.
+* **Signals:** Time-pressure countdowns (`"within 24 hours"`, `"expires today"`), account suspension threats (`"account disabled"`, `"access revoked"`), executive availability baits (`"are you at your desk?"`, `"need a quick favor"`), and secrecy demands (`"strictly confidential - do not discuss with anyone"`).
 
 ### 2. Financial Vector & BEC Invoice Tampering
-* **Mechanism:** Identifies payment redirection vectors and wire transfer manipulation.
-* **Signals:** Banking detail updates (`"updated bank details"`, `"new IBAN"`, `"routing number"`), invoice tampering (`"invoice #..."`, `"remittance advice"`), and untraceable payment demands (cryptocurrency, gift cards).
+* **Mechanism:** Identifies payment redirection vectors, payroll changes, and wire transfer manipulation.
+* **Signals:** Banking detail updates (`"updated bank details"`, `"new IBAN"`, `"routing number"`), audit account migration pretexts, invoice tampering (`"invoice #..."`, `"remittance advice"`), payroll direct deposit fraud, and untraceable payment demands (gift cards, cryptocurrency).
 
 ### 3. Credential Harvesting & Auth Manipulation
-* **Mechanism:** Detects session hijacking, fake authentication lures, and signature phishing.
-* **Signals:** Password reset traps (`"reset password"`, `"password expired"`), identity verification prompts (`"verify credentials"`, `"re-authenticate"`), fake 2FA alerts, and DocuSign/AdobeSign document lures.
+* **Mechanism:** Detects session hijacking, quishing (QR code phishing), OAuth grant traps, and malicious attachments.
+* **Signals:** Password reset traps (`"reset password"`, `"password expired"`), identity verification prompts (`"verify credentials"`, `"re-authenticate"`), quishing prompts (`"scan the qr code to verify"`), OAuth consent lures (`"grant permissions"`), and macro/executable attachments (`".html attachment"`, `"enable macros"`).
 
 ### 4. Sender Identity & Homoglyph Anomalies
-* **Mechanism:** Typosquatting and domain spoofing analysis.
-* **Signals:** Alphanumeric substitutions and brand homoglyphs (`paypa1`, `micros0ft`, `g00gle`), deceptive keyword subdomains (`*-security.*`, `*-verify.*`), and high-risk Top-Level Domains (`.xyz`, `.top`, `.click`, `.work`).
+* **Mechanism:** Strict brand typosquatting and domain spoofing analysis with trusted root allowlisting.
+* **Signals:** Strict homoglyph substitutions (`paypa1`, `micros0ft`, `g00gle`, `amaz0n`, `netf1ix`), deceptive keyword subdomains (`*-security.*`, `*-verify.*`), and high-risk Top-Level Domains (`.xyz`, `.top`, `.click`, `.work`).
 
 ---
 
 ## Composite Scoring Model
 
-$$\text{Composite Score} = \text{Primary Vector Score} + \left( \sum \text{Secondary Vector Scores} \times 0.35 \right)$$
+$$\text{Composite Score} = \text{Primary Vector Score} + \left( \sum \text{Secondary Vector Scores} \times 0.20 \right)$$
 
 $$\text{Final Score} = \min(\max(\text{round}(\text{Composite Score}), 0), 100)$$
+
+* **Compound Attack Rules:** Critical multi-vector pairings (e.g. Lookalike domain + Phishing lure, or Executive Secrecy + Gift Card extortion) automatically escalate to High Risk ($\ge 75$), while single-vector signals remain appropriately categorized as Moderate Risk (Watchlist).
 
 | Risk Tier | Score Range | Default Action | Interface Treatment |
 | :--- | :---: | :--- | :--- |
