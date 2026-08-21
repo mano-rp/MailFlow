@@ -1,6 +1,6 @@
 """
 Step 2: Financial Vector & Payment Redirection Module
-Detects wire transfer redirects, fake invoices, crypto demands, and bank account tampering.
+Detects wire transfer redirects, fake invoices, crypto demands, payroll tampering, and bank account redirection.
 """
 
 import re
@@ -8,13 +8,22 @@ from typing import List, Tuple
 from .base import StepResult
 
 FINANCIAL_PATTERNS: List[Tuple[re.Pattern, int, str]] = [
-    (re.compile(r"\b(wire\s+transfer|direct\s+wire|fund\s+transfer|electronic\s+transfer)\b", re.I), 35, "Wire Transfer Vector"),
-    (re.compile(r"\b(updated\s+(?:bank\s+details|banking\s+information|payment\s+instructions)|new\s+(?:iban|bank\s+account|routing\s+number))\b", re.I), 45, "Bank Account Redirection / IBAN Tampering"),
-    (re.compile(r"\b(invoice\s*#?\s*[A-Z0-9\-_]+|unpaid\s+invoice|overdue\s+payment|payment\s+remittance|billing\s+statement)\b", re.I), 25, "Invoice / Billing Vector"),
-    (re.compile(r"\b(swift\s+code|routing\s+number|ach\s+transfer|sort\s+code)\b", re.I), 30, "Banking Routing Identifiers"),
-    (re.compile(r"\b(gift\s+cards?|itunes\s+card|steam\s+card|apple\s+gift|google\s+play\s+card|vanilla\s+visa)\b", re.I), 45, "Gift Card Payment Extortion"),
-    (re.compile(r"\b(crypto|bitcoin|btc|usdt|ethereum|wallet\s+address|blockchain\s+transfer)\b", re.I), 35, "Cryptocurrency Demand"),
-    (re.compile(r"\b(remittance\s+advice|payroll\s+update|direct\s+deposit\s+form)\b", re.I), 30, "Payroll / Remittance Tampering"),
+    # Banking Redirection & Account Tampering
+    (re.compile(r"\b(updated\s+(?:bank\s+details|banking\s+information|payment\s+instructions)|new\s+(?:iban|bank\s+account|routing\s+number|beneficiary\s+details))\b", re.I), 45, "Bank Account Redirection / IBAN Tampering"),
+    (re.compile(r"\b(earlier\s+current\s+account\s+is\s+temporarily\s+frozen|shifted\s+our\s+current\s+account|temporary\s+account\s+due\s+to\s+audit)\b", re.I), 50, "Deceptive Audit / Account Migration Pretext"),
+    (re.compile(r"\b(swift\s+code|routing\s+number|ach\s+transfer|sort\s+code|beneficiary\s+bank)\b", re.I), 30, "Banking Routing Identifiers"),
+
+    # Wire Transfers & Invoices
+    (re.compile(r"\b(wire\s+transfer|direct\s+wire|fund\s+transfer|electronic\s+funds?\s+transfer)\b", re.I), 35, "Wire Transfer Vector"),
+    (re.compile(r"\b(invoice\s*#?\s*[A-Z0-9\-_]+|unpaid\s+invoice|overdue\s+payment|payment\s+remittance|billing\s+statement|remittance\s+advice)\b", re.I), 25, "Invoice / Billing Vector"),
+
+    # Payroll & Direct Deposit Fraud
+    (re.compile(r"\b(update\s+(?:my\s+)?direct\s+deposit|change\s+(?:my\s+)?payroll|direct\s+deposit\s+form|payroll\s+routing\s+change)\b", re.I), 45, "Payroll / Direct Deposit Impersonation"),
+    (re.compile(r"\b(w-2\s+information|tax\s+refund\s+pending|irs\s+refund\s+claim)\b", re.I), 40, "Tax / W-2 Form Fraud Lure"),
+
+    # Untraceable Extortion & Card Schemes
+    (re.compile(r"\b(gift\s+cards?|itunes\s+card|steam\s+card|apple\s+gift|google\s+play\s+card|vanilla\s+visa|amazon\s+gift\s+card)\b", re.I), 50, "Gift Card Payment Extortion / BEC Task"),
+    (re.compile(r"\b(crypto|bitcoin|btc|usdt|ethereum|wallet\s+address|blockchain\s+transfer|send\s+to\s+this\s+address)\b", re.I), 40, "Cryptocurrency Extortion Demand"),
 ]
 
 
