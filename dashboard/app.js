@@ -18,7 +18,7 @@
     expandedThreatIds: new Set(),
     isBackendOnline: false,
     theme: localStorage.getItem('mailflow_dashboard_theme') || 'light',
-    policies: JSON.parse(localStorage.getItem('mailflow_dashboard_policies') || '{}'),
+    policies: JSON.parse(localStorage.getItem('mailflow_dashboard_policies') || '{"bank-rules":true,"homoglyph-lock":true,"quishing-rules":true}'),
   };
 
   // DOM Elements Cache
@@ -74,6 +74,36 @@
 
   function toggleTheme() {
     applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * SME POLICY CONTROLS
+   * --------------------------------------------------------------------------
+   */
+  function initPolicies() {
+    if (!DOM.policyToggles) return;
+
+    DOM.policyToggles.forEach(toggle => {
+      const key = toggle.dataset.policy;
+      if (key && typeof state.policies[key] !== 'undefined') {
+        toggle.checked = Boolean(state.policies[key]);
+      }
+
+      toggle.addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        state.policies[key] = checked;
+        localStorage.setItem('mailflow_dashboard_policies', JSON.stringify(state.policies));
+
+        const policyNames = {
+          'bank-rules': 'Auto-Quarantine Bank Updates',
+          'homoglyph-lock': 'Executive Homoglyph Lock',
+          'quishing-rules': 'Quishing & Userinfo Traps',
+        };
+        const name = policyNames[key] || key;
+        showToast(`Policy '${name}' ${checked ? 'enabled' : 'disabled'} across fleet`, checked ? 'success' : 'warning');
+      });
+    });
   }
 
   /**
@@ -731,6 +761,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     applyTheme(state.theme);
+    initPolicies();
     
     // Auto-seed initially
     seedDemoThreats();
