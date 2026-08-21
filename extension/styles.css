@@ -279,6 +279,18 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   border-color: #c4c7c5;
 }
 
+.mailflow-btn-action.danger {
+  color: #b3261e !important;
+  border-color: #f2b8b5 !important;
+  background-color: #ffffff !important;
+}
+
+.mailflow-btn-action.danger:hover {
+  background-color: #fce8e6 !important;
+  border-color: #ea4335 !important;
+  color: #8c1d18 !important;
+}
+
 /* MailFlow Dashboard Content Area */
 .mailflow-view-content {
   display: flex;

@@ -7,6 +7,9 @@
   'use strict';
 
   const BACKEND_URL = 'http://localhost:8000';
+  const STORAGE_KEY_QUARANTINED = 'mailflow_quarantined_threats';
+  const STORAGE_KEY_MODERATE = 'mailflow_moderate_threats';
+
   let isBackendOnline = false;
   let isMailFlowTabActive = (window.location.hash === '#mailflow');
   let observer = null;
@@ -39,6 +42,10 @@
     refresh: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
     </svg>`,
+    trash: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>`,
     check: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#1e8e3e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="20 6 9 17 4 12"/>
     </svg>`,
@@ -60,9 +67,67 @@
 
   /**
    * =========================================================================
-   * MODULE 0: BACKEND HEALTH & SETTINGS
+   * MODULE 0: PERSISTENT STORAGE, HEALTH & SETTINGS
    * =========================================================================
    */
+
+  function loadStoredThreats() {
+    try {
+      const rawQ = localStorage.getItem(STORAGE_KEY_QUARANTINED);
+      if (rawQ) {
+        const items = JSON.parse(rawQ);
+        if (Array.isArray(items)) {
+          items.forEach(item => {
+            if (item && item.id) quarantinedThreats.set(item.id, item);
+          });
+        }
+      }
+      const rawM = localStorage.getItem(STORAGE_KEY_MODERATE);
+      if (rawM) {
+        const items = JSON.parse(rawM);
+        if (Array.isArray(items)) {
+          items.forEach(item => {
+            if (item && item.id) moderateThreats.set(item.id, item);
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[MailFlow] Storage load error:', e);
+    }
+  }
+
+  function persistStoredThreats() {
+    try {
+      const qList = Array.from(quarantinedThreats.values()).map(t => ({
+        id: t.id,
+        sender: t.sender,
+        subject: t.subject,
+        snippet: t.snippet,
+        risk_score: t.risk_score,
+        tier: t.tier,
+        color: t.color,
+        threat_type: t.threat_type,
+        explanation: t.explanation,
+        timestamp: t.timestamp
+      }));
+      const mList = Array.from(moderateThreats.values()).map(t => ({
+        id: t.id,
+        sender: t.sender,
+        subject: t.subject,
+        snippet: t.snippet,
+        risk_score: t.risk_score,
+        tier: t.tier,
+        color: t.color,
+        threat_type: t.threat_type,
+        explanation: t.explanation,
+        timestamp: t.timestamp
+      }));
+      localStorage.setItem(STORAGE_KEY_QUARANTINED, JSON.stringify(qList));
+      localStorage.setItem(STORAGE_KEY_MODERATE, JSON.stringify(mList));
+    } catch (e) {
+      console.warn('[MailFlow] Storage save error:', e);
+    }
+  }
 
   async function checkBackendHeartbeat() {
     try {
@@ -111,16 +176,15 @@
 
   /**
    * =========================================================================
-   * MODULE 1: SEARCH BAR HOOK & TOASTS
+   * MODULE 1: SEARCH BAR HOOK & TOASTS (ZERO-LOOP SAFE)
    * =========================================================================
    */
 
   function setSearchBarText(text) {
     const searchInput = document.querySelector('input[name="q"], input[aria-label*="Search"], form[role="search"] input');
     if (searchInput && searchInput.value !== text) {
+      // Set value visually without triggering synthetic input events that loop Gmail's router
       searchInput.value = text;
-      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      searchInput.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 
@@ -128,8 +192,6 @@
     const searchInput = document.querySelector('input[name="q"], input[aria-label*="Search"], form[role="search"] input');
     if (searchInput && (searchInput.value === 'in:MailFlow' || searchInput.value === 'in:mailflow')) {
       searchInput.value = '';
-      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      searchInput.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 
@@ -189,7 +251,7 @@
 
   /**
    * =========================================================================
-   * MODULE 2: SIDEBAR LABEL INJECTION
+   * MODULE 2: SIDEBAR LABEL INJECTION & BADGE MANAGEMENT
    * =========================================================================
    */
 
@@ -223,6 +285,31 @@
     return null;
   }
 
+  function updateSidebarBadge() {
+    const badge = document.getElementById('mailflow-counter-badge');
+    const dot = document.getElementById('mailflow-status-dot');
+    const count = quarantinedThreats.size;
+
+    if (badge) {
+      if (count > 0) {
+        badge.textContent = count;
+        badge.classList.add('visible');
+      } else {
+        badge.classList.remove('visible');
+      }
+    }
+
+    if (dot) {
+      if (count > 0) {
+        dot.className = 'mailflow-status-dot dot-red';
+      } else if (moderateThreats.size > 0) {
+        dot.className = 'mailflow-status-dot dot-yellow';
+      } else {
+        dot.className = 'mailflow-status-dot dot-grey';
+      }
+    }
+  }
+
   function injectSidebarItem() {
     if (document.getElementById('mailflow-aim-wrapper')) {
       return;
@@ -252,7 +339,7 @@
         </div>
         <div class="bsU">
           <span class="mailflow-counter-badge" id="mailflow-counter-badge">0</span>
-          <span class="mailflow-status-dot dot-grey" id="mailflow-status-dot" title="MailFlow Status: Monitoring"></span>
+          <span class="mailflow-status-dot dot-grey" id="mailflow-status-dot"></span>
         </div>
       </div>
     `;
@@ -271,6 +358,7 @@
       target.container.appendChild(aimWrapper);
     }
 
+    updateSidebarBadge();
     attachNativeNavListeners();
   }
 
@@ -294,7 +382,7 @@
 
   /**
    * =========================================================================
-   * MODULE 3: GMAIL LIGHT MODE VIEW & THREAT LISTS
+   * MODULE 3: GMAIL LIGHT MODE VIEW & SUSPECTED EMAILS DASHBOARD
    * =========================================================================
    */
 
@@ -312,33 +400,6 @@
     return String(str).replace(/[&<>"']/g, function(m) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
     });
-  }
-
-  async function syncThreatsFromBackend() {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/threats`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.high_risk) {
-          data.high_risk.forEach(t => {
-            if (!quarantinedThreats.has(t.id)) {
-              quarantinedThreats.set(t.id, t);
-            }
-          });
-        }
-        if (data.moderate_risk) {
-          data.moderate_risk.forEach(t => {
-            if (!moderateThreats.has(t.id)) {
-              moderateThreats.set(t.id, t);
-            }
-          });
-        }
-        updateSidebarBadge();
-        renderMailFlowDashboard();
-      }
-    } catch (e) {
-      // Backend offline fallback
-    }
   }
 
   function renderMailFlowDashboard() {
@@ -359,7 +420,7 @@
           </div>
           <h2 class="mailflow-empty-heading">No suspected emails</h2>
           <p class="mailflow-empty-subtext">
-            MailFlow SME Shield is actively monitoring your mailbox. Threats flagged by real-time heuristics will appear here for review.
+            MailFlow SME Shield is actively monitoring your mailbox. Suspected emails flagged by the scan button will appear here for review.
           </p>
         </div>
       `;
@@ -456,23 +517,27 @@
           <span class="mailflow-view-badge">Threat Center</span>
         </div>
         <div class="mailflow-view-actions">
-          <button id="mailflow-btn-refresh-view" class="mailflow-btn-action" title="Refresh Threat List">
-            ${ICONS.refresh}
-            <span>Refresh</span>
-          </button>
+          ${hasItems ? `
+            <button id="mailflow-btn-clear-all" class="mailflow-btn-action danger" aria-label="Clear All Flagged Threats">
+              ${ICONS.trash}
+              <span>Clear All</span>
+            </button>
+          ` : ''}
         </div>
       </div>
       ${contentHtml}
     `;
 
-    const refreshBtn = placeholder.querySelector('#mailflow-btn-refresh-view');
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', async () => {
-        await syncThreatsFromBackend();
-        showToast('MailFlow threat registry refreshed', 'info');
+    // Clear All Action
+    const clearBtn = placeholder.querySelector('#mailflow-btn-clear-all');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        clearAllThreats();
       });
     }
 
+    // Restore Buttons
     placeholder.querySelectorAll('.mailflow-btn-restore').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -484,18 +549,52 @@
     });
   }
 
+  function clearAllThreats() {
+    // 1. Un-hide all DOM rows
+    document.querySelectorAll('tr.zA, .zA').forEach(row => {
+      if (row.dataset.mfRisk === 'high' || row.classList.contains('mailflow-quarantine-slide')) {
+        row.style.display = '';
+        row.classList.remove('mailflow-quarantine-slide');
+        delete row.dataset.mfRisk;
+      }
+      if (row.dataset.mfRisk === 'moderate') {
+        delete row.dataset.mfRisk;
+        const badge = row.querySelector('.mailflow-moderate-badge');
+        if (badge) badge.remove();
+      }
+      const btn = row.querySelector('.mailflow-scan-btn');
+      if (btn) {
+        btn.className = 'mailflow-scan-btn';
+        btn.innerHTML = ICONS.shieldRow;
+      }
+      const actionItem = row.querySelector('.mailflow-row-action-item');
+      if (actionItem) {
+        actionItem.setAttribute('data-tooltip', 'MailFlow Scan');
+      }
+    });
+
+    // 2. Clear stores & local storage
+    quarantinedThreats.clear();
+    moderateThreats.clear();
+    persistStoredThreats();
+
+    // 3. Update sidebar badge & re-render view
+    updateSidebarBadge();
+    renderMailFlowDashboard();
+
+    showToast('All flagged threats cleared', 'info');
+  }
+
   async function restoreThreatToInbox(threatId) {
     const threat = quarantinedThreats.get(threatId);
 
     try {
-      await fetch(`${BACKEND_URL}/api/threats/restore`, {
+      fetch(`${BACKEND_URL}/api/threats/restore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: threatId })
-      });
-    } catch (e) {
-      // Backend offline fallback
-    }
+      }).catch(() => {});
+    } catch (e) {}
 
     let row = threat ? threat.row : null;
     if (!row) {
@@ -522,6 +621,7 @@
     }
 
     quarantinedThreats.delete(threatId);
+    persistStoredThreats();
     updateSidebarBadge();
     renderMailFlowDashboard();
 
@@ -543,39 +643,28 @@
     }
   }
 
-  function syncMailFlowState() {
-    ensureViewMounted();
-
-    const navItem = document.getElementById('mailflow-sidebar-nav-item');
-
-    if (isMailFlowTabActive) {
-      document.body.classList.add('mailflow-active-mode');
-      if (navItem) navItem.classList.add('active');
-
-      document.querySelectorAll('div[role="navigation"] .nZ').forEach(el => {
-        if (el !== navItem) {
-          el.classList.remove('nZ');
-        }
-      });
-
-      setSearchBarText('in:MailFlow');
-      renderMailFlowDashboard();
-    } else {
-      document.body.classList.remove('mailflow-active-mode');
-      if (navItem) navItem.classList.remove('active');
-    }
-  }
-
   function activateMailFlowView() {
     isMailFlowTabActive = true;
     history.replaceState(null, '', '#mailflow');
-    syncMailFlowState();
+
+    ensureViewMounted();
+    document.body.classList.add('mailflow-active-mode');
+
+    const navItem = document.getElementById('mailflow-sidebar-nav-item');
+    if (navItem) navItem.classList.add('active');
+
+    setSearchBarText('in:MailFlow');
+    renderMailFlowDashboard();
   }
 
   function deactivateMailFlowView() {
     isMailFlowTabActive = false;
+    document.body.classList.remove('mailflow-active-mode');
+
+    const navItem = document.getElementById('mailflow-sidebar-nav-item');
+    if (navItem) navItem.classList.remove('active');
+
     clearSearchBarIfMailFlow();
-    syncMailFlowState();
   }
 
   function handleHashChange() {
@@ -647,7 +736,6 @@
     row.classList.add('mailflow-row-scanning');
 
     const { sender, subject, snippet } = extractRowMetadata(row);
-    console.log('[MailFlow] Initiating scan for:', { sender, subject, snippet });
 
     const minLoadingTime = 900;
     const startTime = performance.now();
@@ -671,13 +759,11 @@
 
       if (response.ok) {
         const data = await response.json();
-        console.log('[MailFlow] Scan verdict received:', data);
         applyScanVerdict(row, btn, data);
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (err) {
-      console.error('[MailFlow] Scan error:', err);
       row.classList.remove('mailflow-row-scanning');
       btn.className = 'mailflow-scan-btn backend-offline';
       btn.innerHTML = ICONS.shieldRow;
@@ -691,34 +777,6 @@
         btn.className = 'mailflow-scan-btn';
         btn.innerHTML = ICONS.shieldRow;
       }, 3000);
-    }
-  }
-
-  function updateSidebarBadge() {
-    const badge = document.getElementById('mailflow-counter-badge');
-    const dot = document.getElementById('mailflow-status-dot');
-    const count = quarantinedThreats.size;
-
-    if (badge) {
-      if (count > 0) {
-        badge.textContent = count;
-        badge.classList.add('visible');
-      } else {
-        badge.classList.remove('visible');
-      }
-    }
-
-    if (dot) {
-      if (count > 0) {
-        dot.className = 'mailflow-status-dot dot-red';
-        dot.title = `MailFlow: ${count} Threat(s) Quarantined`;
-      } else if (moderateThreats.size > 0) {
-        dot.className = 'mailflow-status-dot dot-yellow';
-        dot.title = `MailFlow: ${moderateThreats.size} Caution Warning(s)`;
-      } else {
-        dot.className = 'mailflow-status-dot dot-grey';
-        dot.title = 'MailFlow Status: Monitoring';
-      }
     }
   }
 
@@ -750,6 +808,7 @@
       }
 
       moderateThreats.set(id, { ...data, row });
+      persistStoredThreats();
       updateSidebarBadge();
     } else if (tier === 'high') {
       btn.className = 'mailflow-scan-btn verdict-high';
@@ -759,6 +818,7 @@
       
       row.dataset.mfRisk = 'high';
       quarantinedThreats.set(id, { ...data, row });
+      persistStoredThreats();
 
       // Smooth slide-to-right quarantine animation
       row.classList.add('mailflow-quarantine-slide');
@@ -776,7 +836,6 @@
     actionItem.setAttribute('aria-label', 'MailFlow Scan');
     actionItem.setAttribute('data-tooltip', 'MailFlow Scan');
     actionItem.setAttribute('data-tooltip-delay', '300');
-    // Notice: Removed title attribute to prevent duplicate browser userhint
 
     if (!currentSettings.showInlineRows) {
       actionItem.style.display = 'none';
@@ -807,6 +866,30 @@
 
   function ensureRowHasScanButton(row) {
     if (!row) return;
+
+    // Check if this row matches a previously stored threat
+    const { sender, subject } = extractRowMetadata(row);
+    quarantinedThreats.forEach((threat, id) => {
+      if (threat.sender === sender && threat.subject === subject) {
+        row.dataset.mailflowId = id;
+        row.dataset.mfRisk = 'high';
+        row.style.display = 'none';
+      }
+    });
+
+    moderateThreats.forEach((threat, id) => {
+      if (threat.sender === sender && threat.subject === subject) {
+        row.dataset.mailflowId = id;
+        row.dataset.mfRisk = 'moderate';
+        const subjectEl = row.querySelector('.bog, .bqe, span.bqe');
+        if (subjectEl && !subjectEl.querySelector('.mailflow-moderate-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'mailflow-moderate-badge';
+          badge.innerHTML = `⚠ Caution (${threat.risk_score})`;
+          subjectEl.prepend(badge);
+        }
+      }
+    });
 
     const actionToolbar = row.querySelector('ul.bq4, ul.aqL, ul[role="toolbar"], td.bq9 ul, .bq8 ul, .a4y ul, td.yX ul, ul.bqe, ul.bqZ');
     
@@ -881,7 +964,7 @@
 
   /**
    * =========================================================================
-   * OBSERVER & PERSISTENT DOM SYNCHRONIZATION
+   * MODULE 5: OBSERVER & PERSISTENT DOM SYNCHRONIZATION (CLEAN & NON-RECURSIVE)
    * =========================================================================
    */
 
@@ -890,21 +973,24 @@
       injectSidebarItem();
     }
 
-    syncMailFlowState();
-
     if (scanDebounceTimer) clearTimeout(scanDebounceTimer);
     scanDebounceTimer = setTimeout(() => {
       scanAllEmailRows();
-    }, 80);
+    }, 150);
   }
 
   async function init() {
+    loadStoredThreats();
     syncSettings();
     await checkBackendHeartbeat();
     injectSidebarItem();
     scanAllEmailRows();
     setupHoverDelegation();
-    syncMailFlowState();
+    updateSidebarBadge();
+
+    if (window.location.hash === '#mailflow') {
+      activateMailFlowView();
+    }
 
     window.removeEventListener('hashchange', handleHashChange);
     window.addEventListener('hashchange', handleHashChange);
