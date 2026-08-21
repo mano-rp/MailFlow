@@ -408,9 +408,7 @@
   }
 
   function renderThreatRowHtml(threat, id, isHighRisk) {
-    const badgeLabel = isHighRisk 
-      ? `🚨 ${threat.threat_type || 'Quarantined'}`
-      : `⚠️ ${threat.threat_type || 'Moderate'}`;
+    const badgeLabel = escapeHtml(threat.threat_type || (isHighRisk ? 'Quarantined' : 'Watchlist'));
     const badgeClass = isHighRisk ? 'high' : 'moderate';
 
     return `
@@ -499,8 +497,8 @@
             <div class="mailflow-native-section">
               <div class="mailflow-native-section-header">
                 <div class="mailflow-native-section-title">
-                  <span>🚨 Quarantined Threats</span>
-                  <span class="mailflow-native-section-count red">${totalQuarantined}</span>
+                  <span>Quarantined Threats</span>
+                  <span class="mailflow-native-section-count">${totalQuarantined}</span>
                 </div>
               </div>
               <div class="mailflow-table-list">
@@ -513,8 +511,8 @@
             <div class="mailflow-native-section">
               <div class="mailflow-native-section-header">
                 <div class="mailflow-native-section-title">
-                  <span>⚠️ Watchlist & Moderate Risks</span>
-                  <span class="mailflow-native-section-count yellow">${totalModerate}</span>
+                  <span>Watchlist & Moderate Risks</span>
+                  <span class="mailflow-native-section-count">${totalModerate}</span>
                 </div>
               </div>
               <div class="mailflow-table-list">

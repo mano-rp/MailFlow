@@ -146,9 +146,9 @@
 
 .mailflow-counter-badge {
   font-size: 11px !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
   color: #ffffff !important;
-  background-color: var(--mf-error) !important;
+  background-color: #444746 !important;
   border-radius: 10px !important;
   padding: 1px 6px !important;
   min-width: 18px !important;
@@ -162,32 +162,20 @@
 }
 
 .mailflow-status-dot {
-  width: 8px !important;
-  height: 8px !important;
+  width: 7px !important;
+  height: 7px !important;
   border-radius: 50% !important;
   display: inline-block !important;
   flex-shrink: 0 !important;
-  transition: background-color 0.25s ease, box-shadow 0.25s ease !important;
-}
-
-.mailflow-status-dot.dot-grey {
   background-color: #80868b !important;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08) !important;
 }
 
-.mailflow-status-dot.dot-green {
-  background-color: #1e8e3e !important;
-  box-shadow: 0 0 0 2px rgba(30, 142, 62, 0.2) !important;
-}
-
-.mailflow-status-dot.dot-red {
-  background-color: #dc2626 !important;
-  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25) !important;
-}
-
+.mailflow-status-dot.dot-grey,
+.mailflow-status-dot.dot-green,
+.mailflow-status-dot.dot-red,
 .mailflow-status-dot.dot-yellow {
-  background-color: #f59e0b !important;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25) !important;
+  background-color: #80868b !important;
+  box-shadow: none !important;
 }
 
 /* ==========================================================================
@@ -331,19 +319,11 @@ body.mailflow-active-mode #mailflow-placeholder-view {
 
 .mailflow-native-section-count {
   font-size: 11px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 8px;
-}
-
-.mailflow-native-section-count.red {
-  background-color: var(--mf-error-container);
-  color: var(--mf-error);
-}
-
-.mailflow-native-section-count.yellow {
-  background-color: var(--mf-warning-container);
-  color: var(--mf-warning);
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background-color: #f1f3f4;
+  color: #444746;
 }
 
 /* Gmail-Native Table Row Item */
@@ -382,24 +362,28 @@ body.mailflow-active-mode #mailflow-placeholder-view {
 .mf-col-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
   font-size: 11px;
-  font-weight: 700;
-  padding: 2px 7px;
+  font-weight: 500;
+  padding: 1px 7px;
   border-radius: 4px;
   margin-right: 14px;
   flex-shrink: 0;
   white-space: nowrap;
+  background-color: #f8f9fa;
+  color: #444746;
+  border: 1px solid #e0e4eb;
 }
 
 .mf-col-badge.high {
-  background-color: #fce8e6;
-  color: #c5221f;
+  background-color: #f8f9fa;
+  color: #3c4043;
+  border-color: #e0e4eb;
 }
 
 .mf-col-badge.moderate {
-  background-color: #fef7e0;
-  color: #b06000;
+  background-color: #f8f9fa;
+  color: #3c4043;
+  border-color: #e0e4eb;
 }
 
 .mf-col-sender {
@@ -697,34 +681,34 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   flex-shrink: 0 !important;
 }
 
-/* Verdict: Low Risk (Green) */
+/* Verdict: Low Risk (Clean) */
 .mailflow-scan-btn.verdict-low {
-  background-color: rgba(30, 142, 62, 0.12) !important;
-  color: var(--mf-success) !important;
+  background-color: rgba(32, 33, 36, 0.06) !important;
+  color: #444746 !important;
 }
 
 .mailflow-scan-btn.verdict-low:hover {
-  background-color: rgba(30, 142, 62, 0.2) !important;
+  background-color: rgba(32, 33, 36, 0.12) !important;
 }
 
-/* Verdict: Moderate Risk (Yellow/Amber) */
+/* Verdict: Moderate Risk (Watchlist) */
 .mailflow-scan-btn.verdict-moderate {
-  background-color: rgba(245, 158, 11, 0.14) !important;
-  color: var(--mf-warning) !important;
+  background-color: rgba(32, 33, 36, 0.06) !important;
+  color: #444746 !important;
 }
 
 .mailflow-scan-btn.verdict-moderate:hover {
-  background-color: rgba(245, 158, 11, 0.24) !important;
+  background-color: rgba(32, 33, 36, 0.12) !important;
 }
 
-/* Verdict: High Risk (Red) */
+/* Verdict: High Risk (Quarantined) */
 .mailflow-scan-btn.verdict-high {
-  background-color: rgba(220, 38, 38, 0.14) !important;
-  color: var(--mf-error) !important;
+  background-color: rgba(32, 33, 36, 0.06) !important;
+  color: #444746 !important;
 }
 
 .mailflow-scan-btn.verdict-high:hover {
-  background-color: rgba(220, 38, 38, 0.24) !important;
+  background-color: rgba(32, 33, 36, 0.12) !important;
 }
 
 .mailflow-scan-btn.backend-offline {
