@@ -16,10 +16,10 @@
   --mf-outline-variant: #c4c7c5;
   --mf-success: #1e8e3e;
   --mf-success-container: #e6f4ea;
-  --mf-warning: #d97706;
-  --mf-warning-container: #fef3c7;
-  --mf-error: #dc2626;
-  --mf-error-container: #fee2e2;
+  --mf-warning: #b06000;
+  --mf-warning-container: #fef7e0;
+  --mf-error: #c5221f;
+  --mf-error-container: #fce8e6;
   --mf-font: 'Google Sans', Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   --mf-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --mf-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -191,7 +191,7 @@
 }
 
 /* ==========================================================================
-   2. Gmail Native Light Mode Tab View (Threat Center Dashboard)
+   2. Gmail Native Light Mode Tab View (Sleek Gmail-Native List)
    ========================================================================== */
 #mailflow-placeholder-view {
   display: none !important;
@@ -221,10 +221,13 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
+  height: 56px;
+  min-height: 56px;
+  padding: 0 24px;
   border-bottom: 1px solid #e0e4eb;
   background-color: #ffffff;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .mailflow-view-title-group {
@@ -234,20 +237,20 @@ body.mailflow-active-mode #mailflow-placeholder-view {
 }
 
 .mailflow-view-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #1f1f1f;
   display: flex;
   align-items: center;
-  gap: 10px;
-  letter-spacing: -0.2px;
+  gap: 8px;
+  letter-spacing: -0.1px;
 }
 
 .mailflow-view-badge {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
   background-color: #d3e3fd;
   color: #041e49;
 }
@@ -262,16 +265,16 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  border-radius: 18px;
+  padding: 5px 12px;
+  border-radius: 16px;
   border: 1px solid #dadce0;
   background-color: #ffffff;
-  color: #1f1f1f;
+  color: #3c4043;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .mailflow-btn-action:hover {
@@ -291,171 +294,282 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   color: #8c1d18 !important;
 }
 
-/* MailFlow Dashboard Content Area */
+/* Gmail Native Table View Container */
 .mailflow-view-content {
   display: flex;
   flex-direction: column;
-  padding: 24px 32px;
-  gap: 24px;
+  padding: 0 0 32px 0;
   flex: 1;
 }
 
-.mailflow-threat-section {
+.mailflow-native-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  margin-bottom: 8px;
 }
 
-.mailflow-section-header {
+.mailflow-native-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e0e4eb;
+  padding: 14px 24px 8px 24px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5f6368;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #f1f3f4;
+  background-color: #ffffff;
+  user-select: none;
 }
 
-.mailflow-section-title-wrap {
+.mailflow-native-section-title {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.mailflow-section-title {
+.mailflow-native-section-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.mailflow-native-section-count.red {
+  background-color: var(--mf-error-container);
+  color: var(--mf-error);
+}
+
+.mailflow-native-section-count.yellow {
+  background-color: var(--mf-warning-container);
+  color: var(--mf-warning);
+}
+
+/* Gmail-Native Table Row Item */
+.mailflow-item {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #f1f3f4;
+  background-color: #ffffff;
+  transition: background-color 0.1s ease;
+}
+
+.mailflow-table-row {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 24px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14px;
+  background-color: transparent;
+  transition: background-color 0.12s ease;
+  box-sizing: border-box;
+}
+
+.mailflow-table-row:hover {
+  background-color: #f7f9fc;
+  box-shadow: inset 1px 0 0 #dadce0, inset -1px 0 0 #dadce0;
+}
+
+.mailflow-item.expanded .mailflow-table-row {
+  background-color: #f2f6fc;
+}
+
+/* Row Columns */
+.mf-col-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-right: 14px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.mf-col-badge.high {
+  background-color: #fce8e6;
+  color: #c5221f;
+}
+
+.mf-col-badge.moderate {
+  background-color: #fef7e0;
+  color: #b06000;
+}
+
+.mf-col-sender {
   font-size: 14px;
   font-weight: 700;
-  color: #1f1f1f;
-  letter-spacing: -0.1px;
+  color: #202124;
+  width: 170px;
+  min-width: 170px;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 14px;
+  flex-shrink: 0;
 }
 
-.mailflow-section-count {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
-.mailflow-section-count.red {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
-.mailflow-section-count.yellow {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.mailflow-threat-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.mailflow-threat-card {
-  display: flex;
-  flex-direction: column;
-  padding: 14px 18px;
-  background-color: #ffffff;
-  border: 1px solid #e0e4eb;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  gap: 8px;
-}
-
-.mailflow-threat-card.high {
-  border-left: 4px solid #dc2626;
-}
-
-.mailflow-threat-card.moderate {
-  border-left: 4px solid #f59e0b;
-}
-
-.mailflow-card-top {
+.mf-col-content {
+  flex: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  margin-right: 16px;
+  min-width: 0;
 }
 
-.mailflow-card-badge-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mailflow-card-threat-badge {
-  font-size: 11.5px;
+.mf-subject {
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 6px;
+  color: #202124;
+  margin-right: 6px;
+  white-space: nowrap;
 }
 
-.mailflow-card-threat-badge.high {
-  background-color: #fee2e2;
-  color: #991b1b;
+.mf-separator {
+  color: #5f6368;
+  margin-right: 6px;
+  font-weight: 400;
 }
 
-.mailflow-card-threat-badge.moderate {
-  background-color: #fef3c7;
-  color: #92400e;
+.mf-snippet {
+  color: #5f6368;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.mailflow-card-score-pill {
+.mf-col-score {
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background-color: #f3f4f6;
-  color: #374151;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: #f1f3f4;
+  color: #3c4043;
+  margin-right: 14px;
+  flex-shrink: 0;
 }
 
-.mailflow-card-sender {
-  font-size: 13px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.mailflow-card-subject {
-  font-size: 13px;
-  font-weight: 500;
-  color: #1f2937;
-}
-
-.mailflow-card-explanation {
+.mf-col-date {
   font-size: 12px;
-  color: #4b5563;
-  line-height: 1.45;
-  background-color: #f9fafb;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #f3f4f6;
+  font-weight: 600;
+  color: #5f6368;
+  min-width: 60px;
+  text-align: right;
+  flex-shrink: 0;
+  margin-right: 10px;
 }
 
-.mailflow-card-actions {
+.mf-col-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: #5f6368;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.mailflow-item.expanded .mf-col-arrow {
+  transform: rotate(180deg);
+  color: #0b57d0;
+}
+
+/* Expandable Inline Detail Drawer */
+.mailflow-row-drawer {
+  display: none;
+  padding: 16px 24px 18px 24px;
+  background-color: #f8fafc;
+  border-top: 1px solid #eef2f6;
+  border-bottom: 1px solid #e0e4eb;
+  animation: mailflow-drawer-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mailflow-item.expanded .mailflow-row-drawer {
+  display: block;
+}
+
+.mf-drawer-explanation {
+  font-size: 13px;
+  color: #1f2937;
+  line-height: 1.5;
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.mf-drawer-meta-grid {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 6px 12px;
+  font-size: 12.5px;
+  margin-bottom: 14px;
+  color: #4b5563;
+}
+
+.mf-drawer-meta-grid .mf-meta-label {
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.mf-drawer-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  margin-top: 4px;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 .mailflow-btn-restore {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
+  gap: 6px;
+  padding: 6px 14px;
   border-radius: 6px;
-  border: 1px solid #d1d5db;
+  border: 1px solid #0b57d0;
   background-color: #ffffff;
-  color: #374151;
-  font-size: 12px;
+  color: #0b57d0;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .mailflow-btn-restore:hover {
-  background-color: #f3f4f6;
-  border-color: #9ca3af;
-  color: #111827;
+  background-color: #e8f0fe;
+}
+
+.mailflow-btn-dismiss {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #dadce0;
+  background-color: #ffffff;
+  color: #5f6368;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mailflow-btn-dismiss:hover {
+  background-color: #f1f3f4;
+  color: #202124;
 }
 
 /* Empty State / Triage Container */
@@ -512,27 +626,6 @@ body.mailflow-active-mode #mailflow-placeholder-view {
 /* Restored to Inbox Fade-In Animation */
 .mailflow-restored-row {
   animation: mailflow-restore-fade 0.85s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-/* Moderate Risk Row Warning Accent */
-tr.zA[data-mf-risk="moderate"], .zA[data-mf-risk="moderate"] {
-  border-left: 3px solid #f59e0b !important;
-  background-color: rgba(245, 158, 11, 0.04) !important;
-}
-
-.mailflow-moderate-badge {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 3px !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  padding: 1px 6px !important;
-  border-radius: 4px !important;
-  background-color: #fef3c7 !important;
-  color: #b45309 !important;
-  border: 1px solid #fde68a !important;
-  margin-right: 6px !important;
-  vertical-align: middle !important;
 }
 
 /* ==========================================================================
@@ -751,4 +844,9 @@ tr.zA[data-mf-risk="moderate"], .zA[data-mf-risk="moderate"] {
   0% { opacity: 0; transform: translateX(40px); background-color: rgba(16, 185, 129, 0.2); }
   50% { opacity: 1; transform: translateX(0); background-color: rgba(16, 185, 129, 0.08); }
   100% { background-color: transparent; }
+}
+
+@keyframes mailflow-drawer-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }

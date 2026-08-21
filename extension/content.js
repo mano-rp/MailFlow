@@ -35,12 +35,9 @@
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="m9 12 2 2 4-4"/>
     </svg>`,
-    shieldHeader: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b57d0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    shieldHeader: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b57d0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="m9 12 2 2 4-4"/>
-    </svg>`,
-    refresh: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
     </svg>`,
     trash: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="3 6 5 6 21 6"></polyline>
@@ -49,19 +46,26 @@
     check: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#1e8e3e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="20 6 9 17 4 12"/>
     </svg>`,
-    warning: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    warning: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#b06000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
       <line x1="12" y1="9" x2="12" y2="13"/>
       <line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>`,
-    alert: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    alert: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#c5221f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <line x1="15" y1="9" x2="9" y2="15"/>
       <line x1="9" y1="9" x2="15" y2="15"/>
     </svg>`,
-    restore: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    chevronDown: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>`,
+    restore: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="1 4 1 10 7 10"/>
       <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+    </svg>`,
+    dismiss: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>`
   };
 
@@ -103,6 +107,7 @@
         sender: t.sender,
         subject: t.subject,
         snippet: t.snippet,
+        dateStr: t.dateStr || 'Today',
         risk_score: t.risk_score,
         tier: t.tier,
         color: t.color,
@@ -115,6 +120,7 @@
         sender: t.sender,
         subject: t.subject,
         snippet: t.snippet,
+        dateStr: t.dateStr || 'Today',
         risk_score: t.risk_score,
         tier: t.tier,
         color: t.color,
@@ -176,14 +182,13 @@
 
   /**
    * =========================================================================
-   * MODULE 1: SEARCH BAR HOOK & TOASTS (ZERO-LOOP SAFE)
+   * MODULE 1: SEARCH BAR HOOK & TOASTS
    * =========================================================================
    */
 
   function setSearchBarText(text) {
     const searchInput = document.querySelector('input[name="q"], input[aria-label*="Search"], form[role="search"] input');
     if (searchInput && searchInput.value !== text) {
-      // Set value visually without triggering synthetic input events that loop Gmail's router
       searchInput.value = text;
     }
   }
@@ -208,11 +213,11 @@
 
     let iconSvg = ICONS.shieldRow;
     if (type === 'success') {
-      iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+      iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#1e8e3e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
     } else if (type === 'warning') {
-      iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+      iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#b06000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
     } else if (type === 'error' || type === 'alert') {
-      iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#ea4335" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+      iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#c5221f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
     }
 
     toast.innerHTML = `
@@ -382,7 +387,7 @@
 
   /**
    * =========================================================================
-   * MODULE 3: GMAIL LIGHT MODE VIEW & SUSPECTED EMAILS DASHBOARD
+   * MODULE 3: GMAIL NATIVE-LOOKING MAILFLOW TAB VIEW & EXPANDABLE ACCORDION
    * =========================================================================
    */
 
@@ -400,6 +405,55 @@
     return String(str).replace(/[&<>"']/g, function(m) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
     });
+  }
+
+  function renderThreatRowHtml(threat, id, isHighRisk) {
+    const badgeLabel = isHighRisk 
+      ? `🚨 ${threat.threat_type || 'Quarantined'}`
+      : `⚠️ ${threat.threat_type || 'Moderate'}`;
+    const badgeClass = isHighRisk ? 'high' : 'moderate';
+
+    return `
+      <div class="mailflow-item" data-threat-id="${id}">
+        <div class="mailflow-table-row" role="button" tabindex="0">
+          <div class="mf-col-badge ${badgeClass}">${badgeLabel}</div>
+          <div class="mf-col-sender" title="${escapeHtml(threat.sender)}">${escapeHtml(threat.sender)}</div>
+          <div class="mf-col-content">
+            <span class="mf-subject">${escapeHtml(threat.subject)}</span>
+            <span class="mf-separator">-</span>
+            <span class="mf-snippet">${escapeHtml(threat.snippet)}</span>
+          </div>
+          <div class="mf-col-score">Risk: ${threat.risk_score}/100</div>
+          <div class="mf-col-date">${escapeHtml(threat.dateStr || 'Today')}</div>
+          <div class="mf-col-arrow">${ICONS.chevronDown}</div>
+        </div>
+        <div class="mailflow-row-drawer">
+          <div class="mf-drawer-explanation">
+            <strong>Security Evaluation:</strong> ${escapeHtml(threat.explanation)}
+          </div>
+          <div class="mf-drawer-meta-grid">
+            <div class="mf-meta-label">Sender:</div>
+            <div>${escapeHtml(threat.sender)}</div>
+            <div class="mf-meta-label">Subject:</div>
+            <div>${escapeHtml(threat.subject)}</div>
+            <div class="mf-meta-label">Snippet:</div>
+            <div>${escapeHtml(threat.snippet || 'No preview available')}</div>
+          </div>
+          <div class="mf-drawer-actions">
+            ${isHighRisk ? `
+              <button class="mailflow-btn-restore" data-restore-id="${id}">
+                ${ICONS.restore}
+                <span>Restore to Inbox</span>
+              </button>
+            ` : ''}
+            <button class="mailflow-btn-dismiss" data-dismiss-id="${id}" data-risk="${threat.tier}">
+              ${ICONS.dismiss}
+              <span>Dismiss</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function renderMailFlowDashboard() {
@@ -425,84 +479,49 @@
         </div>
       `;
     } else {
-      let quarantinedHtml = '';
+      let quarantinedRows = '';
       if (totalQuarantined > 0) {
-        let cards = '';
         quarantinedThreats.forEach((threat, id) => {
-          cards += `
-            <div class="mailflow-threat-card high" data-threat-id="${id}">
-              <div class="mailflow-card-top">
-                <div class="mailflow-card-badge-group">
-                  <span class="mailflow-card-threat-badge high">🚨 ${threat.threat_type || 'High Risk Threat'}</span>
-                  <span class="mailflow-card-score-pill">Risk: ${threat.risk_score}/100</span>
-                </div>
-              </div>
-              <div class="mailflow-card-sender">From: ${escapeHtml(threat.sender)}</div>
-              <div class="mailflow-card-subject">Subject: ${escapeHtml(threat.subject)}</div>
-              <div class="mailflow-card-explanation">${escapeHtml(threat.explanation)}</div>
-              <div class="mailflow-card-actions">
-                <button class="mailflow-btn-restore" data-restore-id="${id}">
-                  ${ICONS.restore}
-                  <span>Restore to Inbox</span>
-                </button>
-              </div>
-            </div>
-          `;
+          quarantinedRows += renderThreatRowHtml(threat, id, true);
         });
-
-        quarantinedHtml = `
-          <div class="mailflow-threat-section">
-            <div class="mailflow-section-header">
-              <div class="mailflow-section-title-wrap">
-                <span class="mailflow-section-title">🚨 Quarantined Threats</span>
-                <span class="mailflow-section-count red">${totalQuarantined}</span>
-              </div>
-            </div>
-            <div class="mailflow-threat-list">
-              ${cards}
-            </div>
-          </div>
-        `;
       }
 
-      let moderateHtml = '';
+      let moderateRows = '';
       if (totalModerate > 0) {
-        let cards = '';
         moderateThreats.forEach((threat, id) => {
-          cards += `
-            <div class="mailflow-threat-card moderate" data-threat-id="${id}">
-              <div class="mailflow-card-top">
-                <div class="mailflow-card-badge-group">
-                  <span class="mailflow-card-threat-badge moderate">⚠️ ${threat.threat_type || 'Moderate Warning'}</span>
-                  <span class="mailflow-card-score-pill">Risk: ${threat.risk_score}/100</span>
-                </div>
-              </div>
-              <div class="mailflow-card-sender">From: ${escapeHtml(threat.sender)}</div>
-              <div class="mailflow-card-subject">Subject: ${escapeHtml(threat.subject)}</div>
-              <div class="mailflow-card-explanation">${escapeHtml(threat.explanation)}</div>
-            </div>
-          `;
+          moderateRows += renderThreatRowHtml(threat, id, false);
         });
-
-        moderateHtml = `
-          <div class="mailflow-threat-section">
-            <div class="mailflow-section-header">
-              <div class="mailflow-section-title-wrap">
-                <span class="mailflow-section-title">⚠️ Watchlist & Moderate Risks</span>
-                <span class="mailflow-section-count yellow">${totalModerate}</span>
-              </div>
-            </div>
-            <div class="mailflow-threat-list">
-              ${cards}
-            </div>
-          </div>
-        `;
       }
 
       contentHtml = `
         <div class="mailflow-view-content">
-          ${quarantinedHtml}
-          ${moderateHtml}
+          ${totalQuarantined > 0 ? `
+            <div class="mailflow-native-section">
+              <div class="mailflow-native-section-header">
+                <div class="mailflow-native-section-title">
+                  <span>🚨 Quarantined Threats</span>
+                  <span class="mailflow-native-section-count red">${totalQuarantined}</span>
+                </div>
+              </div>
+              <div class="mailflow-table-list">
+                ${quarantinedRows}
+              </div>
+            </div>
+          ` : ''}
+
+          ${totalModerate > 0 ? `
+            <div class="mailflow-native-section">
+              <div class="mailflow-native-section-header">
+                <div class="mailflow-native-section-title">
+                  <span>⚠️ Watchlist & Moderate Risks</span>
+                  <span class="mailflow-native-section-count yellow">${totalModerate}</span>
+                </div>
+              </div>
+              <div class="mailflow-table-list">
+                ${moderateRows}
+              </div>
+            </div>
+          ` : ''}
         </div>
       `;
     }
@@ -528,7 +547,18 @@
       ${contentHtml}
     `;
 
-    // Clear All Action
+    // 1. Accordion Row Click Expansion
+    placeholder.querySelectorAll('.mailflow-table-row').forEach(rowEl => {
+      rowEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const itemContainer = rowEl.closest('.mailflow-item');
+        if (itemContainer) {
+          itemContainer.classList.toggle('expanded');
+        }
+      });
+    });
+
+    // 2. Clear All Action
     const clearBtn = placeholder.querySelector('#mailflow-btn-clear-all');
     if (clearBtn) {
       clearBtn.addEventListener('click', (e) => {
@@ -537,7 +567,7 @@
       });
     }
 
-    // Restore Buttons
+    // 3. Restore Buttons
     placeholder.querySelectorAll('.mailflow-btn-restore').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -547,10 +577,30 @@
         }
       });
     });
+
+    // 4. Dismiss Buttons
+    placeholder.querySelectorAll('.mailflow-btn-dismiss').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const threatId = btn.dataset.dismissId;
+        if (threatId) {
+          dismissThreat(threatId);
+        }
+      });
+    });
+  }
+
+  function dismissThreat(threatId) {
+    quarantinedThreats.delete(threatId);
+    moderateThreats.delete(threatId);
+    persistStoredThreats();
+    updateSidebarBadge();
+    renderMailFlowDashboard();
+    showToast('Threat item dismissed', 'info');
   }
 
   function clearAllThreats() {
-    // 1. Un-hide all DOM rows
+    // 1. Un-hide all DOM rows in Gmail
     document.querySelectorAll('tr.zA, .zA').forEach(row => {
       if (row.dataset.mfRisk === 'high' || row.classList.contains('mailflow-quarantine-slide')) {
         row.style.display = '';
@@ -559,8 +609,6 @@
       }
       if (row.dataset.mfRisk === 'moderate') {
         delete row.dataset.mfRisk;
-        const badge = row.querySelector('.mailflow-moderate-badge');
-        if (badge) badge.remove();
       }
       const btn = row.querySelector('.mailflow-scan-btn');
       if (btn) {
@@ -687,38 +735,46 @@
 
   function extractRowMetadata(row) {
     let sender = '';
-    const senderEl = row.querySelector('.yP, .zF, span[email], .bA4 span, .yW span, span[name], .yX div, .yW');
-    if (senderEl) {
-      sender = senderEl.getAttribute('email') || 
-               senderEl.getAttribute('name') || 
-               senderEl.innerText.trim() || 
-               '';
+    const nameEl = row.querySelector('span.zF, span.yP, span[name], span[email], .bA4 span');
+    if (nameEl) {
+      sender = nameEl.getAttribute('name') || nameEl.getAttribute('email') || nameEl.textContent.trim();
+    }
+    
+    if (!sender) {
+      const senderCol = row.querySelector('td.yX, td.yF, td.oZ, .yW');
+      if (senderCol) {
+        const innerSpan = senderCol.querySelector('span');
+        sender = (innerSpan ? innerSpan.textContent : senderCol.textContent).trim();
+      }
+    }
+
+    if (sender) {
+      sender = sender.split('\n')[0].replace(/^unread,\s*/i, '').trim();
     }
 
     let subject = '';
-    const subjectEl = row.querySelector('.bog, .bqe, span.bqe, .y6 span');
+    const subjectEl = row.querySelector('.bog, .bqe, span.bqe');
     if (subjectEl) {
-      subject = subjectEl.innerText.trim() || '';
+      subject = subjectEl.textContent.trim();
     }
 
     let snippet = '';
     const snippetEl = row.querySelector('.y2, span.y2, .Zt');
     if (snippetEl) {
-      snippet = snippetEl.innerText.trim() || '';
+      snippet = snippetEl.textContent.trim().replace(/^[-–—\s]+/, '').trim();
     }
 
-    if (!sender || !subject) {
-      const rawText = row.innerText || row.textContent || '';
-      const lines = rawText.split('\n').map(s => s.trim()).filter(Boolean);
-      if (!sender && lines.length > 0) sender = lines[0];
-      if (!subject && lines.length > 1) subject = lines[1];
-      if (!snippet && lines.length > 2) snippet = lines.slice(2).join(' ');
+    let dateStr = '';
+    const dateEl = row.querySelector('td.xW span, td.m6 span, span.bq3');
+    if (dateEl) {
+      dateStr = dateEl.textContent.trim();
     }
 
     sender = sender || 'Unknown Sender';
     subject = subject || 'No Subject';
+    dateStr = dateStr || 'Today';
 
-    return { sender, subject, snippet };
+    return { sender, subject, snippet, dateStr };
   }
 
   async function handleScanClick(row, btn, e) {
@@ -735,7 +791,7 @@
     btn.innerHTML = `<div class="mailflow-scan-spinner"></div>`;
     row.classList.add('mailflow-row-scanning');
 
-    const { sender, subject, snippet } = extractRowMetadata(row);
+    const { sender, subject, snippet, dateStr } = extractRowMetadata(row);
 
     const minLoadingTime = 900;
     const startTime = performance.now();
@@ -759,7 +815,7 @@
 
       if (response.ok) {
         const data = await response.json();
-        applyScanVerdict(row, btn, data);
+        applyScanVerdict(row, btn, { ...data, dateStr });
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -798,15 +854,6 @@
       showToast(`🟡 MailFlow Caution: ${threat_type} (Score: ${risk_score}/100)`, 'warning');
       
       row.dataset.mfRisk = 'moderate';
-      
-      const subjectEl = row.querySelector('.bog, .bqe, span.bqe');
-      if (subjectEl && !subjectEl.querySelector('.mailflow-moderate-badge')) {
-        const badge = document.createElement('span');
-        badge.className = 'mailflow-moderate-badge';
-        badge.innerHTML = `⚠ Caution (${risk_score})`;
-        subjectEl.prepend(badge);
-      }
-
       moderateThreats.set(id, { ...data, row });
       persistStoredThreats();
       updateSidebarBadge();
@@ -867,27 +914,13 @@
   function ensureRowHasScanButton(row) {
     if (!row) return;
 
-    // Check if this row matches a previously stored threat
+    // Check if this row matches a previously quarantined threat
     const { sender, subject } = extractRowMetadata(row);
     quarantinedThreats.forEach((threat, id) => {
       if (threat.sender === sender && threat.subject === subject) {
         row.dataset.mailflowId = id;
         row.dataset.mfRisk = 'high';
         row.style.display = 'none';
-      }
-    });
-
-    moderateThreats.forEach((threat, id) => {
-      if (threat.sender === sender && threat.subject === subject) {
-        row.dataset.mailflowId = id;
-        row.dataset.mfRisk = 'moderate';
-        const subjectEl = row.querySelector('.bog, .bqe, span.bqe');
-        if (subjectEl && !subjectEl.querySelector('.mailflow-moderate-badge')) {
-          const badge = document.createElement('span');
-          badge.className = 'mailflow-moderate-badge';
-          badge.innerHTML = `⚠ Caution (${threat.risk_score})`;
-          subjectEl.prepend(badge);
-        }
       }
     });
 
@@ -964,7 +997,7 @@
 
   /**
    * =========================================================================
-   * MODULE 5: OBSERVER & PERSISTENT DOM SYNCHRONIZATION (CLEAN & NON-RECURSIVE)
+   * MODULE 5: OBSERVER & PERSISTENT DOM SYNCHRONIZATION
    * =========================================================================
    */
 
