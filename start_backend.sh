@@ -4,8 +4,10 @@
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
-# Locate Python executable
-if [ -x "$ROOT_DIR/.venv/bin/python" ]; then
+# Locate Python executable (check active VIRTUAL_ENV first, then local .venv)
+if [ -n "$VIRTUAL_ENV" ] && [ -x "$VIRTUAL_ENV/bin/python" ]; then
+  PYTHON="$VIRTUAL_ENV/bin/python"
+elif [ -x "$ROOT_DIR/.venv/bin/python" ]; then
   PYTHON="$ROOT_DIR/.venv/bin/python"
 elif [ -x "$ROOT_DIR/backend/.venv/bin/python" ]; then
   PYTHON="$ROOT_DIR/backend/.venv/bin/python"
