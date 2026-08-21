@@ -21,7 +21,6 @@
   const state = {
     isAuthenticated: sessionStorage.getItem(AUTH_CONFIG.STORAGE_KEY) === 'true',
     threats: [],
-    purgedThreatIds: new Set(JSON.parse(localStorage.getItem('mailflow_purged_ids') || '[]')),
     activeFilter: 'all',
     activeUserFilter: 'all',
     searchQuery: '',
@@ -347,20 +346,20 @@
     showToast(`Added ${newCount || DEMO_SEEDS.length} audited feed entries`, 'success');
   }
 
-  function clearThreats() {
-    // Collect all IDs to mark as purged so polling doesn't immediately restore them
-    state.threats.forEach(t => {
-      state.purgedThreatIds.add(t.id);
+  async function clearThreats() {
+    const liveThreats = state.threats.filter(t => t.isLive !== false);
+    for (const t of liveThreats) {
       if (state.isBackendOnline) {
-        fetch(`${BACKEND_URL}/api/threats/restore`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: t.id })
-        }).catch(() => {});
+        try {
+          await fetch(`${BACKEND_URL}/api/threats/restore`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: t.id })
+          });
+        } catch (e) {}
       }
-    });
+    }
 
-    localStorage.setItem('mailflow_purged_ids', JSON.stringify(Array.from(state.purgedThreatIds)));
     state.threats = [];
     state.expandedThreatIds.clear();
     updateKPIMetrics();
@@ -421,33 +420,25 @@
         const data = await res.json();
         const incoming = [...(data.high_risk || []), ...(data.moderate_risk || [])];
 
-        let stateChanged = false;
-        incoming.forEach(inc => {
-          // If this threat was explicitly purged/deleted by admin, skip it
-          if (state.purgedThreatIds.has(inc.id)) {
-            return;
-          }
+        const incomingLiveThreats = incoming.map(inc => ({
+          ...inc,
+          isLive: true,
+          recipient: inc.recipient || PRIMARY_EXTENSION_USER,
+          department: 'Active Extension Workstation'
+        }));
 
-          // Tag incoming scans as primary extension workstation items
-          const formatted = {
-            ...inc,
-            isLive: true,
-            recipient: inc.recipient || PRIMARY_EXTENSION_USER,
-            department: 'Active Extension Workstation'
-          };
+        // Retain any secondary/demo feed items (isLive === false)
+        const secondaryThreats = state.threats.filter(t => t.isLive === false);
 
-          const existingIdx = state.threats.findIndex(t => t.id === inc.id);
-          if (existingIdx === -1) {
-            // New incoming real scan -> insert at top
-            state.threats.unshift(formatted);
-            stateChanged = true;
-          } else {
-            // Update existing if state changed
-            state.threats[existingIdx] = { ...state.threats[existingIdx], ...formatted };
-          }
-        });
+        // Combined reconciled list
+        const combined = [...incomingLiveThreats, ...secondaryThreats];
 
-        if (stateChanged) {
+        // Check if state actually changed
+        const currentSignature = state.threats.map(t => `${t.id}:${t.tier}:${t.risk_score}`).join('|');
+        const newSignature = combined.map(t => `${t.id}:${t.tier}:${t.risk_score}`).join('|');
+
+        if (currentSignature !== newSignature) {
+          state.threats = combined;
           updateKPIMetrics();
           renderThreatTable();
         }
@@ -466,52 +457,44 @@
     if (!threatId) return;
 
     const threat = state.threats.find(t => t.id === threatId);
-    if (!threat) return;
+    const recipient = threat ? threat.recipient : PRIMARY_EXTENSION_USER;
 
     try {
       if (state.isBackendOnline) {
-        fetch(`${BACKEND_URL}/api/threats/restore`, {
+        await fetch(`${BACKEND_URL}/api/threats/restore`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: threatId })
-        }).catch(() => {});
+        });
       }
     } catch (e) {
       console.warn('[MailFlow Dashboard] Restore request err:', e);
     }
 
-    threat.tier = 'low';
-    threat.risk_score = 0;
-    threat.action = 'restored';
-    threat.threat_type = 'Restored by Admin';
-    threat.explanation = 'Threat restored to employee inbox by SME security administrator.';
-
+    state.threats = state.threats.filter(t => t.id !== threatId);
+    state.expandedThreatIds.delete(threatId);
     updateKPIMetrics();
     renderThreatTable();
-    showToast(`Restored to ${threat.recipient} inbox & unquarantined in backend`, 'success');
+    showToast(`Restored to ${recipient} inbox & unquarantined in backend`, 'success');
   }
 
-  function purgeThreat(threatId) {
+  async function purgeThreat(threatId) {
     if (!threatId) return;
 
     // 1. Trigger deletion in backend
     try {
       if (state.isBackendOnline) {
-        fetch(`${BACKEND_URL}/api/threats/restore`, {
+        await fetch(`${BACKEND_URL}/api/threats/restore`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: threatId })
-        }).catch(() => {});
+        });
       }
     } catch (e) {
       console.warn('[MailFlow Dashboard] Purge backend sync err:', e);
     }
 
-    // 2. Persist to purged set so polling does not re-add it
-    state.purgedThreatIds.add(threatId);
-    localStorage.setItem('mailflow_purged_ids', JSON.stringify(Array.from(state.purgedThreatIds)));
-
-    const row = DOM.tableBody.querySelector(`tr[data-id="${threatId}"]`);
+    const row = DOM.tableBody?.querySelector(`tr[data-id="${threatId}"]`);
     if (row) {
       row.classList.add('purging');
     }

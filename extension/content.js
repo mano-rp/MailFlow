@@ -148,6 +148,91 @@
     }
   }
 
+  async function syncThreatsWithBackend() {
+    if (!isBackendOnline) return;
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/threats`, {
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const backendHighList = data.high_risk || [];
+        const backendModList = data.moderate_risk || [];
+        const backendHighIds = new Set(backendHighList.map(t => t.id));
+        const backendModIds = new Set(backendModList.map(t => t.id));
+
+        let changed = false;
+
+        // 1. Reconcile Quarantined Threats:
+        // If an item in local quarantinedThreats is NO LONGER in backendHighIds (e.g. restored or deleted from dashboard)
+        for (const [id, threat] of quarantinedThreats.entries()) {
+          if (!backendHighIds.has(id)) {
+            // Threat was restored or deleted on dashboard -> unhide in Gmail!
+            let row = threat.row;
+            if (!row) {
+              row = document.querySelector(`tr[data-mailflow-id="${id}"], .zA[data-mailflow-id="${id}"]`);
+            }
+            if (row) {
+              row.classList.remove('mailflow-quarantine-slide');
+              delete row.dataset.mfRisk;
+              row.style.display = '';
+              const scanBtn = row.querySelector('.mailflow-scan-btn');
+              if (scanBtn) {
+                scanBtn.className = 'mailflow-scan-btn';
+                scanBtn.innerHTML = ICONS.shieldRow;
+                const actionItem = scanBtn.closest('.mailflow-row-action-item');
+                if (actionItem) actionItem.setAttribute('data-tooltip', 'MailFlow Scan');
+              }
+            }
+            quarantinedThreats.delete(id);
+            changed = true;
+          }
+        }
+
+        // Add any missing backend high risk threats
+        backendHighList.forEach(t => {
+          if (!quarantinedThreats.has(t.id)) {
+            quarantinedThreats.set(t.id, t);
+            // Hide corresponding row if it exists in DOM
+            const row = document.querySelector(`tr[data-mailflow-id="${t.id}"], .zA[data-mailflow-id="${t.id}"]`);
+            if (row) {
+              row.dataset.mfRisk = 'high';
+              row.style.display = 'none';
+            }
+            changed = true;
+          }
+        });
+
+        // 2. Reconcile Moderate Threats:
+        for (const [id] of moderateThreats.entries()) {
+          if (!backendModIds.has(id)) {
+            moderateThreats.delete(id);
+            changed = true;
+          }
+        }
+
+        backendModList.forEach(t => {
+          if (!moderateThreats.has(t.id)) {
+            moderateThreats.set(t.id, t);
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          persistStoredThreats();
+          updateSidebarBadge();
+          if (isMailFlowTabActive) {
+            renderMailFlowDashboard();
+          }
+        }
+      }
+    } catch (e) {
+      // Backend error, ignore
+    }
+  }
+
   function syncSettings() {
     if (typeof chrome !== 'undefined' && chrome.storage) {
       const storageArea = chrome.storage.sync || chrome.storage.local;
@@ -588,16 +673,24 @@
     });
   }
 
-  function dismissThreat(threatId) {
+  async function dismissThreat(threatId) {
+    try {
+      fetch(`${BACKEND_URL}/api/threats/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: threatId })
+      }).catch(() => {});
+    } catch (e) {}
+
     quarantinedThreats.delete(threatId);
     moderateThreats.delete(threatId);
     persistStoredThreats();
     updateSidebarBadge();
     renderMailFlowDashboard();
-    showToast('Threat item dismissed', 'info');
+    showToast('Threat item dismissed and unquarantined in backend', 'info');
   }
 
-  function clearAllThreats() {
+  async function clearAllThreats() {
     // 1. Un-hide all DOM rows in Gmail
     document.querySelectorAll('tr.zA, .zA').forEach(row => {
       if (row.dataset.mfRisk === 'high' || row.classList.contains('mailflow-quarantine-slide')) {
@@ -619,7 +712,18 @@
       }
     });
 
-    // 2. Clear stores & local storage
+    // 2. Clear stores & local storage & notify backend for all IDs
+    const allIds = [...quarantinedThreats.keys(), ...moderateThreats.keys()];
+    allIds.forEach(id => {
+      try {
+        fetch(`${BACKEND_URL}/api/threats/restore`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        }).catch(() => {});
+      } catch (e) {}
+    });
+
     quarantinedThreats.clear();
     moderateThreats.clear();
     persistStoredThreats();
@@ -628,7 +732,7 @@
     updateSidebarBadge();
     renderMailFlowDashboard();
 
-    showToast('All flagged threats cleared', 'info');
+    showToast('All flagged threats cleared and synced with backend', 'info');
   }
 
   async function restoreThreatToInbox(threatId) {
@@ -1231,6 +1335,9 @@
     loadStoredThreats();
     syncSettings();
     await checkBackendHeartbeat();
+    if (isBackendOnline) {
+      await syncThreatsWithBackend();
+    }
     injectSidebarItem();
     scanAllEmailRows();
     setupHoverDelegation();
@@ -1254,7 +1361,12 @@
     });
 
     if (heartbeatTimer) clearInterval(heartbeatTimer);
-    heartbeatTimer = setInterval(checkBackendHeartbeat, 10000);
+    heartbeatTimer = setInterval(async () => {
+      await checkBackendHeartbeat();
+      if (isBackendOnline) {
+        await syncThreatsWithBackend();
+      }
+    }, 2500);
   }
 
   if (document.readyState === 'loading') {
