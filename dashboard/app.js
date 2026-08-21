@@ -542,12 +542,38 @@
   }
 
   function toggleThreatDrawer(threatId) {
-    if (state.expandedThreatIds.has(threatId)) {
-      state.expandedThreatIds.delete(threatId);
+    if (!threatId) return;
+
+    const drawer = document.getElementById(`drawer-${threatId}`);
+    const row = DOM.tableBody?.querySelector(`.threat-row[data-id="${threatId}"]`);
+    const btn = row?.querySelector('.btn-toggle-drawer');
+
+    if (drawer) {
+      const isCurrentlyHidden = drawer.classList.contains('hidden');
+      if (isCurrentlyHidden) {
+        drawer.classList.remove('hidden');
+        state.expandedThreatIds.add(threatId);
+        if (btn) {
+          btn.innerHTML = `<i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>`;
+        }
+      } else {
+        drawer.classList.add('hidden');
+        state.expandedThreatIds.delete(threatId);
+        if (btn) {
+          btn.innerHTML = `<i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>`;
+        }
+      }
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
     } else {
-      state.expandedThreatIds.add(threatId);
+      if (state.expandedThreatIds.has(threatId)) {
+        state.expandedThreatIds.delete(threatId);
+      } else {
+        state.expandedThreatIds.add(threatId);
+      }
+      renderThreatTable();
     }
-    renderThreatTable();
   }
 
   /**
@@ -775,7 +801,7 @@
         </td>
 
         <!-- Sender & Subject -->
-        <td class="py-2.5 px-4 align-top max-w-sm md:max-w-md lg:max-w-xl xl:max-w-2xl">
+        <td class="py-2.5 px-4 align-top overflow-hidden">
           <div class="font-medium text-zinc-900 dark:text-white truncate" title="${escapeHtml(t.subject)}">${escapeHtml(t.subject || 'No Subject')}</div>
           <div class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5" title="${escapeHtml(t.sender)}">${escapeHtml(t.sender || 'Unknown Sender')}</div>
         </td>
