@@ -8,7 +8,7 @@
 
   const BACKEND_URL = 'http://localhost:8000';
   const POLLING_INTERVAL_MS = 2500;
-  const PRIMARY_EXTENSION_USER = 'nithin@acme-corp.com';
+  const PRIMARY_EXTENSION_USER = 'nithin@mailflow.com';
 
   // Demo Authentication Constants
   const AUTH_CONFIG = {
@@ -41,7 +41,6 @@
     authPassword: document.getElementById('auth-password'),
     authError: document.getElementById('auth-error'),
     authErrorText: document.getElementById('auth-error-text'),
-    btnDemoAutologin: document.getElementById('btn-demo-autologin'),
     btnAuthThemeToggle: document.getElementById('btn-auth-theme-toggle'),
     authThemeIcon: document.getElementById('auth-theme-icon'),
     btnLogout: document.getElementById('btn-logout'),
@@ -142,12 +141,6 @@
         DOM.authPassword.focus();
       }
     }
-  }
-
-  function handleDemoAutoLogin() {
-    if (DOM.authEmail) DOM.authEmail.value = AUTH_CONFIG.EMAIL;
-    if (DOM.authPassword) DOM.authPassword.value = AUTH_CONFIG.PASSWORD;
-    handleAuthSubmit();
   }
 
   function handleLogout() {
@@ -264,7 +257,7 @@
       isLive: false,
       timestamp: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
       sender: 'Sharma Logistics <billing@sharma-invoices.com>',
-      recipient: 'sarah.cfo@acme-corp.com',
+      recipient: 'sarah.cfo@mailflow.com',
       department: 'Finance & Operations',
       subject: 'Re: INV-2291 final notice - updated bank details, action required',
       snippet: 'Dear Sir/Madam, This is the final notice regarding the pending settlement of Rs. 9,85000 against INV-2291. Our earlier current account is temporarily frozen pending an audit, so kindly remit funds to our new IBAN immediately.',
@@ -298,8 +291,8 @@
       id: 'mf_sec_ceo02',
       isLive: false,
       timestamp: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-      sender: 'Alex Vance (CEO) <ceo@acme-corp.co>',
-      recipient: 'alex.dev@acme-corp.com',
+      sender: 'Alex Vance (CEO) <ceo@mailflow.co>',
+      recipient: 'alex.dev@mailflow.com',
       department: 'Engineering & Infrastructure',
       subject: 'Quick confidential task - need it now',
       snippet: 'Are you at your desk? I need you to handle something for a client urgently and it is strictly confidential - do not discuss with anyone in the team until it is done. Please purchase 5 Apple Gift Cards for a client presentation.',
@@ -325,7 +318,7 @@
       isLive: false,
       timestamp: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
       sender: 'CloudScale Billing <accounts@cloudscale.io>',
-      recipient: 'sarah.cfo@acme-corp.com',
+      recipient: 'sarah.cfo@mailflow.com',
       department: 'Finance & Operations',
       subject: 'Invoice Statement & Updated Banking Terms',
       snippet: 'Please review the updated routing details and quarterly cloud statement.',
@@ -861,7 +854,6 @@
     purgeThreat,
     toggleThreatDrawer,
     handleAuthSubmit,
-    handleDemoAutoLogin,
     handleLogout,
   };
 
@@ -874,7 +866,6 @@
 
     // Event Listeners
     if (DOM.authForm) DOM.authForm.addEventListener('submit', handleAuthSubmit);
-    if (DOM.btnDemoAutologin) DOM.btnDemoAutologin.addEventListener('click', handleDemoAutoLogin);
     if (DOM.btnLogout) DOM.btnLogout.addEventListener('click', handleLogout);
     if (DOM.btnAuthThemeToggle) DOM.btnAuthThemeToggle.addEventListener('click', toggleTheme);
     if (DOM.themeToggleBtn) DOM.themeToggleBtn.addEventListener('click', toggleTheme);
