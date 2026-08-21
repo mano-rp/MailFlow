@@ -386,6 +386,66 @@
 
   /**
    * --------------------------------------------------------------------------
+   * THREAT MITIGATION ACTIONS (RESTORE & PURGE)
+   * --------------------------------------------------------------------------
+   */
+  async function restoreThreat(threatId) {
+    if (!threatId) return;
+
+    const threat = state.threats.find(t => t.id === threatId);
+    if (!threat) return;
+
+    try {
+      if (state.isBackendOnline) {
+        fetch(`${BACKEND_URL}/api/threats/restore`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: threatId })
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('[MailFlow Dashboard] Restore request err:', e);
+    }
+
+    threat.tier = 'low';
+    threat.risk_score = 0;
+    threat.action = 'restored';
+    threat.threat_type = 'Restored by Admin';
+    threat.explanation = 'Threat restored to employee inbox by SME security administrator.';
+
+    updateKPIMetrics();
+    renderThreatTable();
+    showToast(`Threat restored to ${threat.recipient || 'employee'} inbox`, 'success');
+  }
+
+  function purgeThreat(threatId) {
+    if (!threatId) return;
+
+    const row = DOM.tableBody.querySelector(`tr[data-id="${threatId}"]`);
+    if (row) {
+      row.classList.add('purging');
+    }
+
+    setTimeout(() => {
+      state.threats = state.threats.filter(t => t.id !== threatId);
+      state.expandedThreatIds.delete(threatId);
+      updateKPIMetrics();
+      renderThreatTable();
+      showToast('Threat record purged from security ledger', 'info');
+    }, 180);
+  }
+
+  function toggleThreatDrawer(threatId) {
+    if (state.expandedThreatIds.has(threatId)) {
+      state.expandedThreatIds.delete(threatId);
+    } else {
+      state.expandedThreatIds.add(threatId);
+    }
+    renderThreatTable();
+  }
+
+  /**
+   * --------------------------------------------------------------------------
    * SEARCH, FILTER & EXPORT
    * --------------------------------------------------------------------------
    */
@@ -664,6 +724,9 @@
     seedDemoThreats,
     showToast,
     exportThreatLog,
+    restoreThreat,
+    purgeThreat,
+    toggleThreatDrawer,
   };
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -684,6 +747,37 @@
     DOM.filterTabs.forEach(tab => {
       tab.addEventListener('click', handleFilterClick);
     });
+
+    // Delegated click listeners for table rows
+    if (DOM.tableBody) {
+      DOM.tableBody.addEventListener('click', (e) => {
+        const restoreBtn = e.target.closest('.btn-restore');
+        if (restoreBtn) {
+          e.stopPropagation();
+          restoreThreat(restoreBtn.dataset.id);
+          return;
+        }
+
+        const purgeBtn = e.target.closest('.btn-purge');
+        if (purgeBtn) {
+          e.stopPropagation();
+          purgeThreat(purgeBtn.dataset.id);
+          return;
+        }
+
+        const drawerBtn = e.target.closest('.btn-toggle-drawer');
+        if (drawerBtn) {
+          e.stopPropagation();
+          toggleThreatDrawer(drawerBtn.dataset.id);
+          return;
+        }
+
+        const row = e.target.closest('.threat-row');
+        if (row && row.dataset.id) {
+          toggleThreatDrawer(row.dataset.id);
+        }
+      });
+    }
 
     // Start background polling loop
     setInterval(fetchLiveThreats, POLLING_INTERVAL_MS);
