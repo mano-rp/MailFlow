@@ -9,6 +9,7 @@ const DOM = {
   btnCheckConnection: document.getElementById('btn-check-connection'),
   btnScanPage: document.getElementById('btn-scan-page'),
   btnScanUnread: document.getElementById('btn-scan-unread'),
+  btnScanSelected: document.getElementById('btn-scan-selected'),
   themeBtnLight: document.getElementById('theme-btn-light'),
   themeBtnDark: document.getElementById('theme-btn-dark'),
 };
@@ -127,6 +128,10 @@ async function init() {
 
   if (DOM.btnScanUnread) {
     DOM.btnScanUnread.addEventListener('click', () => triggerTabAction('SCAN_UNREAD'));
+  }
+
+  if (DOM.btnScanSelected) {
+    DOM.btnScanSelected.addEventListener('click', () => triggerTabAction('SCAN_SELECTED'));
   }
 
   checkBackendHealth();

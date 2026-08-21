@@ -44,6 +44,12 @@
   padding: 0;
 }
 
+html {
+  background-color: var(--mf-bg);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
 body {
   width: 320px;
   background-color: var(--mf-bg);
@@ -53,8 +59,7 @@ body {
   line-height: 1.4;
   user-select: none;
   -webkit-font-smoothing: antialiased;
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
+  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -64,6 +69,8 @@ body {
   padding: 16px;
   gap: 14px;
   background-color: var(--mf-bg);
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 /* Header */

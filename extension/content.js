@@ -957,6 +957,10 @@
   function ensureRowHasScanButton(row) {
     if (!row) return;
 
+    if (row.dataset.mailflowInjected === 'true' && row.querySelector('.mailflow-row-action-item')) {
+      return;
+    }
+
     const { sender, subject } = extractRowMetadata(row);
     const matchedThreat = findMatchedThreat(sender, subject);
 
@@ -976,10 +980,9 @@
       if (!existing) {
         const button = createScanButton(row, matchedThreat);
         actionToolbar.appendChild(button);
+        row.dataset.mailflowInjected = 'true';
       } else {
-        if (actionToolbar.lastElementChild !== existing) {
-          actionToolbar.appendChild(existing);
-        }
+        row.dataset.mailflowInjected = 'true';
         if (matchedThreat) {
           applyButtonState(existing, matchedThreat);
         }
@@ -991,8 +994,12 @@
         if (!existing) {
           const button = createScanButton(row, matchedThreat);
           actionCell.appendChild(button);
-        } else if (matchedThreat) {
-          applyButtonState(existing, matchedThreat);
+          row.dataset.mailflowInjected = 'true';
+        } else {
+          row.dataset.mailflowInjected = 'true';
+          if (matchedThreat) {
+            applyButtonState(existing, matchedThreat);
+          }
         }
       }
     }
@@ -1001,22 +1008,24 @@
   function scanAllEmailRows() {
     const rows = document.querySelectorAll('tr.zA, .zA');
     rows.forEach(row => {
-      ensureRowHasScanButton(row);
+      if (row.dataset.mailflowInjected !== 'true') {
+        ensureRowHasScanButton(row);
+      }
     });
   }
 
   function setupHoverDelegation() {
-    // 1. Mouseover listener to ensure toolbar has the scan button
+    // 1. Mouseover listener to ensure toolbar has the scan button with early exit
     document.addEventListener('mouseover', (e) => {
       const row = e.target.closest('tr.zA, .zA');
-      if (row) {
+      if (row && row.dataset.mailflowInjected !== 'true') {
         ensureRowHasScanButton(row);
       }
     }, { capture: true, passive: true });
 
     document.addEventListener('focusin', (e) => {
       const row = e.target.closest('tr.zA, .zA');
-      if (row) {
+      if (row && row.dataset.mailflowInjected !== 'true') {
         ensureRowHasScanButton(row);
       }
     }, { capture: true, passive: true });
@@ -1056,15 +1065,38 @@
    * =========================================================================
    */
 
-  function handleMutations() {
+  function handleMutations(mutations) {
     if (!document.getElementById('mailflow-aim-wrapper')) {
       injectSidebarItem();
     }
 
+    let hasRelevantChanges = false;
+    if (mutations && mutations.length) {
+      for (let i = 0; i < mutations.length; i++) {
+        const m = mutations[i];
+        const target = m.target;
+        if (target && (
+          target.id === 'mailflow-placeholder-view' ||
+          target.id === 'mailflow-toast-container' ||
+          target.classList?.contains('mailflow-toast') ||
+          target.classList?.contains('mailflow-row-action-item') ||
+          target.classList?.contains('mailflow-scan-btn')
+        )) {
+          continue;
+        }
+        hasRelevantChanges = true;
+        break;
+      }
+    } else {
+      hasRelevantChanges = true;
+    }
+
+    if (!hasRelevantChanges) return;
+
     if (scanDebounceTimer) clearTimeout(scanDebounceTimer);
     scanDebounceTimer = setTimeout(() => {
       scanAllEmailRows();
-    }, 150);
+    }, 250);
   }
 
   /**
@@ -1130,6 +1162,39 @@
     }
   }
 
+  async function scanSelectedEmails() {
+    const rows = Array.from(document.querySelectorAll('tr.zA, .zA')).filter(row => {
+      if (row.offsetParent === null || row.style.display === 'none') return false;
+      const isSelected = row.classList.contains('x7') || 
+                         row.getAttribute('aria-selected') === 'true' ||
+                         row.querySelector('div[role="checkbox"][aria-checked="true"], div[aria-checked="true"], input[type="checkbox"]:checked');
+      return Boolean(isSelected);
+    });
+
+    if (rows.length === 0) {
+      showToast('No selected emails found. Check the checkbox on emails to select them.', 'info');
+      return;
+    }
+
+    showToast(`Scanning ${rows.length} selected email(s)...`, 'info');
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.style.display === 'none') continue;
+
+      let btn = row.querySelector('.mailflow-scan-btn');
+      if (!btn) {
+        ensureRowHasScanButton(row);
+        btn = row.querySelector('.mailflow-scan-btn');
+      }
+
+      if (btn && !btn.classList.contains('scanning')) {
+        await handleScanClick(row, btn);
+        await new Promise(r => setTimeout(r, 150));
+      }
+    }
+  }
+
   // Chrome Extension Runtime Message Listener
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -1138,6 +1203,9 @@
         sendResponse({ status: 'started' });
       } else if (request.action === 'SCAN_UNREAD') {
         scanUnopenedEmails();
+        sendResponse({ status: 'started' });
+      } else if (request.action === 'SCAN_SELECTED') {
+        scanSelectedEmails();
         sendResponse({ status: 'started' });
       }
       return true;
