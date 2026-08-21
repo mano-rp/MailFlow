@@ -1357,12 +1357,12 @@
         <div class="mf-shield-header">
           <div class="mf-shield-badge scanning">
             <span class="mf-badge-dot"></span>
-            Evaluating Sandbox
+            Evaluating Security
           </div>
           <span class="mf-shield-meta">${escapeHtml(sender || 'Sender')}</span>
         </div>
         <h3 class="mf-shield-title">MailFlow Security Shield</h3>
-        <p class="mf-shield-desc">Evaluating email headers, links, and intent in isolated sandbox...</p>
+        <p class="mf-shield-desc">Analyzing email headers, domains, and links in sandboxed isolation...</p>
       </div>
     `;
     emailBody.parentNode.insertBefore(scanningShield, emailBody);
@@ -1385,7 +1385,7 @@
           id: `mf_${Date.now()}`,
           tier: 'high',
           risk_score: 94,
-          threat_type: 'Billing Verification & Credential Phishing',
+          threat_type: 'Billing Verification & Credential Trap',
           color: 'red',
           matched_steps: [
             {
@@ -1399,7 +1399,7 @@
               matched_rules: ['Deceptive Domain (account-billing-verify.pages.dev)', 'Account Suspension Intimidation']
             }
           ],
-          explanation: 'Critical phishing attack detected (Score 94/100). Flagged for: Fake billing verification link (account-billing-verify.pages.dev); Payment release lure; 24-hour account suspension ultimatum.'
+          explanation: 'Phishing attack detected (Score 94/100). Flagged for: Fake billing verification link (account-billing-verify.pages.dev); Payment release lure; 24-hour account suspension ultimatum.'
         };
       } else if (
         combinedText.includes('mailbox storage full') ||
@@ -1418,7 +1418,7 @@
               matched_rules: ['Account Suspension Ultimatum', 'Storage Quota Deception']
             }
           ],
-          explanation: 'Critical phishing attack detected (Score 89/100). Flagged for: Urgent account termination pretext; Credential harvesting trap.'
+          explanation: 'Phishing attack detected (Score 89/100). Flagged for: Urgent account termination pretext; Credential harvesting trap.'
         };
       } else if (
         combinedText.includes('quick confidential task') ||
@@ -1437,7 +1437,7 @@
               matched_rules: ['Urgent Pretext Request', 'VIP/Executive Tone Spoofing']
             }
           ],
-          explanation: 'Moderate caution advised. High urgency and unverified executive pretext detected.'
+          explanation: 'Caution advised. High urgency and unverified executive pretext detected.'
         };
       } else {
         const response = await fetch(`${BACKEND_URL}/api/scan`, {
@@ -1493,7 +1493,7 @@
           <div class="mf-shield-header">
             <div class="mf-shield-badge clean">
               <span class="mf-badge-dot"></span>
-              ✓ Verified Safe
+              Verified Safe
             </div>
             <span class="mf-shield-meta">${escapeHtml(sender || 'Sender')}</span>
           </div>
@@ -1532,9 +1532,9 @@
       });
       if (rules.length) {
         signalsHtml = `
-          <div class="mf-shield-signals">
-            ${rules.map(r => `<div class="mf-signal-item">• ${escapeHtml(r)}</div>`).join('')}
-          </div>
+          <ul class="mf-shield-signals-list">
+            ${rules.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+          </ul>
         `;
       }
     }
@@ -1544,28 +1544,28 @@
         <div class="mf-shield-header">
           <div class="mf-shield-badge ${threat.tier}">
             <span class="mf-badge-dot"></span>
-            ${isHigh ? 'High Risk Threat' : 'Suspicious Intent Flagged'} (${threat.risk_score || (isHigh ? 94 : 65)}/100)
+            ${isHigh ? 'Threat Detected' : 'Suspicious Signals'} · Score: ${threat.risk_score || (isHigh ? 94 : 65)}/100
           </div>
           <span class="mf-shield-meta">${escapeHtml(meta.sender || 'Sender')}</span>
         </div>
 
         <h3 class="mf-shield-title">
-          ${isHigh ? '🚨 Email Content Sandboxed & Protected' : '⚠️ Suspicious Intent Detected'}
+          ${isHigh ? 'Potential Phishing or Wire Fraud Threat' : 'Unverified Sender Activity'}
         </h3>
 
         <p class="mf-shield-desc">
-          ${escapeHtml(threat.explanation || (isHigh ? 'Critical phishing signals detected. Email body is hidden to prevent credential harvesting and malicious link execution.' : 'This email exhibits high-urgency or unverified sender signals.'))}
+          ${escapeHtml(threat.explanation || (isHigh ? 'Suspicious links or urgent pretext detected. Content is isolated to prevent accidental interaction.' : 'Unusual sender signals detected in this message.'))}
         </p>
 
         ${signalsHtml}
 
         <div class="mf-shield-actions">
           <button class="mf-shield-btn-proceed" type="button">
-            ${isHigh ? 'I understand the risks, reveal content (Defanged)' : 'Proceed to view email content'}
+            ${isHigh ? 'Reveal content (Defanged links)' : 'Proceed to email'}
           </button>
           ${isHigh ? `
             <button class="mf-shield-btn-quarantine" type="button">
-              Quarantine Threat & Go Back
+              Quarantine & Go Back
             </button>
           ` : ''}
         </div>
@@ -1587,8 +1587,8 @@
       const banner = document.createElement('div');
       banner.className = `mailflow-inthread-alert ${threat.tier}`;
       banner.innerHTML = `
-        <span class="mf-alert-title">${isHigh ? '🚨 MailFlow Shield (High Risk)' : '⚠️ MailFlow Warning'}:</span>
-        <span class="mf-alert-text">${isHigh ? 'All links in this message have been safely defanged. Do NOT enter credentials or download attachments.' : escapeHtml(threat.explanation || 'Exercise caution before clicking links or replying.')}</span>
+        <span class="mf-alert-title">${isHigh ? 'MailFlow Shield:' : 'Security Notice:'}</span>
+        <span class="mf-alert-text">${isHigh ? 'External links in this message have been safely neutralized.' : escapeHtml(threat.explanation || 'Exercise caution with unverified links.')}</span>
       `;
       emailBody.parentNode.insertBefore(banner, emailBody);
     });
@@ -1601,7 +1601,7 @@
         persistStoredThreats();
         updateSidebarBadge();
         shield.remove();
-        showToast('🔴 Threat Quarantined: Returning to inbox.', 'alert');
+        showToast('Threat moved to quarantine.', 'alert');
         const backBtn = document.querySelector('div[act="19"], div[aria-label="Back to Inbox"], .T-I.J-J5-Ji.lS, div[aria-label="Back to Sent"]');
         if (backBtn) backBtn.click();
         else window.history.back();
