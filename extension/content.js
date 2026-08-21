@@ -382,8 +382,8 @@
 
   /**
    * =========================================================================
-   * MODULE 4: UNIVERSAL EMAIL ROW SCAN BUTTON INJECTION (JUST ICON)
-   * Guaranteed to inject across all email entities, tabs, and dynamic rows
+   * MODULE 4: UNIVERSAL EMAIL ROW SCAN BUTTON INJECTION (RIGHT-MOST ACTION)
+   * Appends to the end of Gmail's native hover action toolbar
    * =========================================================================
    */
 
@@ -464,6 +464,7 @@
     actionItem.setAttribute('role', 'button');
     actionItem.setAttribute('title', 'MailFlow Scan');
     actionItem.setAttribute('aria-label', 'MailFlow Scan');
+    actionItem.setAttribute('data-tooltip', 'MailFlow Scan');
 
     if (!currentSettings.showInlineRows) {
       actionItem.style.display = 'none';
@@ -485,16 +486,17 @@
   function ensureRowHasScanButton(row) {
     if (!row) return;
 
-    // Check if the row already has our button in its toolbar
-    const existing = row.querySelector('.mailflow-row-action-item');
-    if (existing) return;
-
-    // Find Gmail's native hover action toolbar
+    // Find Gmail's native hover action toolbar (ul)
     const actionToolbar = row.querySelector('ul.bq4, ul.aqL, ul[role="toolbar"], td.bq9 ul, .bq8 ul, .a4y ul, td.yX ul, ul.bqe, ul.bqZ');
     
     if (actionToolbar) {
-      const button = createScanButton(row);
-      actionToolbar.insertBefore(button, actionToolbar.firstChild);
+      const existing = actionToolbar.querySelector('.mailflow-row-action-item');
+      if (!existing) {
+        const button = createScanButton(row);
+        actionToolbar.appendChild(button); // Appends as the RIGHT-MOST action item
+      } else if (actionToolbar.lastElementChild !== existing) {
+        actionToolbar.appendChild(existing); // Keeps it right-most
+      }
     } else {
       // Fallback container if ul is not created yet
       const actionCell = row.querySelector('td.yX, td.bq9, td.a4y, td.xY');
@@ -514,7 +516,7 @@
 
   /**
    * Delegated hover interceptor: Whenever user hovers over ANY row,
-   * verify and inject the button instantly.
+   * verify and inject the button instantly as the right-most item.
    */
   function setupHoverDelegation() {
     document.addEventListener('mouseover', (e) => {

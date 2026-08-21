@@ -304,18 +304,23 @@ body.mailflow-active-mode #mailflow-placeholder-view {
 }
 
 /* ==========================================================================
-   3. Email Row Hover Action Toolbar Button (🛡️ Clean Native Circular Icon)
-   Matches Gmail's Archive, Delete, and Snooze Icon Buttons
+   3. Email Row Hover Action Toolbar Button (🛡️ Right-Most Native Icon)
+   Inherits Gmail's native action toolbar flex alignment with pixel accuracy
    ========================================================================== */
 .mailflow-row-action-item {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  height: 100% !important;
+  min-height: 100% !important;
   width: 32px !important;
-  height: 32px !important;
+  min-width: 32px !important;
   margin: 0 !important;
   padding: 0 !important;
   list-style: none !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
   flex-shrink: 0 !important;
 }
 
@@ -323,10 +328,8 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  min-height: 32px !important;
+  width: 24px !important;
+  height: 24px !important;
   padding: 0 !important;
   margin: 0 !important;
   border-radius: 50% !important;
@@ -335,11 +338,10 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   color: #444746 !important;
   cursor: pointer !important;
   position: relative !important;
-  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
   outline: none !important;
   user-select: none !important;
-  box-shadow: none !important;
-  z-index: 10 !important;
+  box-sizing: border-box !important;
 }
 
 .mailflow-scan-btn:hover {
@@ -349,34 +351,26 @@ body.mailflow-active-mode #mailflow-placeholder-view {
 
 .mailflow-scan-btn:active {
   background-color: rgba(32, 33, 36, 0.16) !important;
-  transform: scale(0.92) !important;
 }
 
 .mailflow-scan-icon {
   width: 18px !important;
   height: 18px !important;
-  color: currentColor !important;
-  transition: transform 0.15s ease !important;
   display: block !important;
-}
-
-.mailflow-scan-btn:hover .mailflow-scan-icon {
-  transform: scale(1.1) !important;
-  color: #0b57d0 !important;
+  color: currentColor !important;
+  flex-shrink: 0 !important;
 }
 
 .mailflow-scan-btn.backend-offline {
   color: #dc2626 !important;
-  opacity: 0.8 !important;
+  opacity: 0.85 !important;
 }
 
 .mailflow-scan-btn.backend-offline:hover {
   background-color: rgba(220, 38, 38, 0.1) !important;
-  color: #b91c1c !important;
 }
 
 .mailflow-scan-btn.scanning {
-  background-color: rgba(11, 87, 208, 0.1) !important;
   cursor: wait !important;
 }
 
@@ -390,7 +384,6 @@ body.mailflow-active-mode #mailflow-placeholder-view {
 }
 
 .mailflow-scan-btn.verdict-safe {
-  background-color: rgba(30, 142, 62, 0.12) !important;
   color: #1e8e3e !important;
 }
 
