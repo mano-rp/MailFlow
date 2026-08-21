@@ -386,6 +386,52 @@
 
   /**
    * --------------------------------------------------------------------------
+   * SEARCH, FILTER & EXPORT
+   * --------------------------------------------------------------------------
+   */
+  function handleFilterClick(e) {
+    const btn = e.target.closest('.filter-tab');
+    if (!btn) return;
+
+    DOM.filterTabs.forEach(t => {
+      t.classList.remove('active', 'text-zinc-900', 'dark:text-white', 'bg-white', 'dark:bg-zinc-700', 'shadow-sm');
+      t.classList.add('text-zinc-600', 'dark:text-zinc-400');
+    });
+
+    btn.classList.add('active', 'text-zinc-900', 'dark:text-white', 'bg-white', 'dark:bg-zinc-700', 'shadow-sm');
+    btn.classList.remove('text-zinc-600', 'dark:text-zinc-400');
+
+    state.activeFilter = btn.dataset.filter || 'all';
+    renderThreatTable();
+  }
+
+  function handleSearchInput(e) {
+    state.searchQuery = (e.target.value || '').trim();
+    renderThreatTable();
+  }
+
+  function exportThreatLog() {
+    if (state.threats.length === 0) {
+      showToast('No incidents to export.', 'warning');
+      return;
+    }
+
+    const jsonStr = JSON.stringify(state.threats, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mailflow_threat_ledger_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast(`Exported ${state.threats.length} threat incident records (JSON)`, 'success');
+  }
+
+  /**
+   * --------------------------------------------------------------------------
    * KPI METRIC CALCULATION ENGINE
    * --------------------------------------------------------------------------
    */
@@ -617,25 +663,27 @@
     fetchLiveThreats,
     seedDemoThreats,
     showToast,
+    exportThreatLog,
   };
 
   document.addEventListener('DOMContentLoaded', () => {
     applyTheme(state.theme);
     
-    // Auto-seed initially if threat ledger is empty so judges immediately see rich threat data
+    // Auto-seed initially
     seedDemoThreats();
     
     fetchLiveThreats();
 
-    if (DOM.themeToggleBtn) {
-      DOM.themeToggleBtn.addEventListener('click', toggleTheme);
-    }
-    if (DOM.manualRefreshBtn) {
-      DOM.manualRefreshBtn.addEventListener('click', fetchLiveThreats);
-    }
-    if (DOM.seedThreatsBtn) {
-      DOM.seedThreatsBtn.addEventListener('click', seedDemoThreats);
-    }
+    // Event Listeners
+    if (DOM.themeToggleBtn) DOM.themeToggleBtn.addEventListener('click', toggleTheme);
+    if (DOM.manualRefreshBtn) DOM.manualRefreshBtn.addEventListener('click', fetchLiveThreats);
+    if (DOM.seedThreatsBtn) DOM.seedThreatsBtn.addEventListener('click', seedDemoThreats);
+    if (DOM.exportLogBtn) DOM.exportLogBtn.addEventListener('click', exportThreatLog);
+    if (DOM.searchInput) DOM.searchInput.addEventListener('input', handleSearchInput);
+
+    DOM.filterTabs.forEach(tab => {
+      tab.addEventListener('click', handleFilterClick);
+    });
 
     // Start background polling loop
     setInterval(fetchLiveThreats, POLLING_INTERVAL_MS);
