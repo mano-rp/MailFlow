@@ -6,7 +6,10 @@
 (function () {
   'use strict';
 
-  const BACKEND_URL = 'http://localhost:8000';
+  // Dynamically resolve backend host from window.location so remote LAN devices connect seamlessly
+  const BACKEND_HOST = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : 'localhost';
+  const BACKEND_PROTOCOL = (typeof window !== 'undefined' && window.location && window.location.protocol) ? window.location.protocol : 'http:';
+  const BACKEND_URL = `${BACKEND_PROTOCOL}//${BACKEND_HOST}:8000`;
   const POLLING_INTERVAL_MS = 2500;
   const PRIMARY_EXTENSION_USER = 'nithin@mailflow.com';
 
@@ -388,7 +391,7 @@
           DOM.backendStatusDot.className = 'w-2 h-2 rounded-full bg-emerald-500 shadow-sm';
         }
         if (DOM.backendStatusText) {
-          DOM.backendStatusText.textContent = 'API Connected (:8000)';
+          DOM.backendStatusText.textContent = `API Connected (:8000)`;
         }
       } else {
         throw new Error('API non-200');
@@ -399,7 +402,7 @@
         DOM.backendStatusDot.className = 'w-2 h-2 rounded-full bg-red-500';
       }
       if (DOM.backendStatusText) {
-        DOM.backendStatusText.textContent = 'API Offline (:8000)';
+        DOM.backendStatusText.textContent = `API Offline (:8000)`;
       }
     }
   }

@@ -70,16 +70,34 @@ $$\text{Final Score} = \min(\max(\text{round}(\text{Composite Score}), 0), 100)$
 
 ---
 
+## Fleet Command Dashboard (SME Admin)
+
+MailFlow includes a standalone, zero-dependency Fleet Command Center dashboard designed for organizational threat analytics, incident triage, and real-time defense monitoring.
+
+* **Multi-Device & LAN Accessible:** Binds to `0.0.0.0:8500` so administrators and judges can access the dashboard from any workstation, laptop, or mobile device on the local network (`http://<HOST_IP>:8500`).
+* **Bidirectional Real-Time Synchronization:** Automatic continuous reconciliation between active extension endpoints, backend threat registries, and the dashboard. Restoring or purging an incident in the dashboard instantly un-quarantines the email in Gmail without desync.
+* **Authentication Gate:** Protected by an administrative session gate (`admin@mailflow` / `1234`).
+* **SME Automated Policy Engine:** Global toggles for executive homoglyph protection, bank account redirection lock, and quishing defense.
+
+---
+
 ## Quickstart Guide
 
 ### 1. Start the Backend Server
 ```bash
 ./start_backend.sh
 ```
-*API runs locally at `http://127.0.0.1:8000`.*
+*API runs at `http://0.0.0.0:8000`.*
 
-### 2. Load the Chrome Extension
+### 2. Start the SME Admin Dashboard
+```bash
+./start_dashboard.sh
+```
+*Dashboard runs at `http://0.0.0.0:8500` (Open [http://localhost:8500](http://localhost:8500) or `http://<LAN_IP>:8500`).*
+
+### 3. Load the Chrome Extension
 1. Open Chrome and navigate to `chrome://extensions/`.
 2. Enable **Developer mode** (top right).
-3. Click **Load unpacked** and select the `/home/winters/MailFlow/extension` folder.
-4. Open [Gmail](https://mail.google.com/) and hover over any email row to scan.
+3. Click **Load unpacked** and select the `/home/winters/MailFlow/extension` directory.
+4. Open [Gmail](https://mail.google.com/), hover over any email row, and click the **MailFlow** shield button to scan.
+

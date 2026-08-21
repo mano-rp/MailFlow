@@ -9,6 +9,7 @@
   const BACKEND_URL = 'http://localhost:8000';
   const STORAGE_KEY_QUARANTINED = 'mailflow_quarantined_threats';
   const STORAGE_KEY_MODERATE = 'mailflow_moderate_threats';
+  const STORAGE_KEY_RESTORED = 'mailflow_restored_threat_ids';
 
   let isBackendOnline = false;
   let isMailFlowTabActive = (window.location.hash === '#mailflow');
@@ -19,6 +20,7 @@
   // In-memory threat stores
   const quarantinedThreats = new Map();
   const moderateThreats = new Map();
+  const restoredThreatIds = new Set();
 
   let currentSettings = {
     showInlineRows: true,
@@ -96,6 +98,15 @@
           });
         }
       }
+      const rawR = localStorage.getItem(STORAGE_KEY_RESTORED);
+      if (rawR) {
+        const items = JSON.parse(rawR);
+        if (Array.isArray(items)) {
+          items.forEach(id => {
+            if (id) restoredThreatIds.add(id);
+          });
+        }
+      }
     } catch (e) {
       console.warn('[MailFlow] Storage load error:', e);
     }
@@ -131,6 +142,7 @@
       }));
       localStorage.setItem(STORAGE_KEY_QUARANTINED, JSON.stringify(qList));
       localStorage.setItem(STORAGE_KEY_MODERATE, JSON.stringify(mList));
+      localStorage.setItem(STORAGE_KEY_RESTORED, JSON.stringify(Array.from(restoredThreatIds)));
     } catch (e) {
       console.warn('[MailFlow] Storage save error:', e);
     }
@@ -169,13 +181,15 @@
         // If an item in local quarantinedThreats is NO LONGER in backendHighIds (e.g. restored or deleted from dashboard)
         for (const [id, threat] of quarantinedThreats.entries()) {
           if (!backendHighIds.has(id)) {
-            // Threat was restored or deleted on dashboard -> unhide in Gmail!
+            // Threat was restored or deleted on dashboard -> unhide in Gmail & track restored!
+            restoredThreatIds.add(id);
             let row = threat.row;
             if (!row) {
               row = document.querySelector(`tr[data-mailflow-id="${id}"], .zA[data-mailflow-id="${id}"]`);
             }
             if (row) {
               row.classList.remove('mailflow-quarantine-slide');
+              row.dataset.mailflowRestored = 'true';
               delete row.dataset.mfRisk;
               row.style.display = '';
               const scanBtn = row.querySelector('.mailflow-scan-btn');
@@ -191,9 +205,9 @@
           }
         }
 
-        // Add any missing backend high risk threats
+        // Add any missing backend high risk threats (only if not previously restored)
         backendHighList.forEach(t => {
-          if (!quarantinedThreats.has(t.id)) {
+          if (!quarantinedThreats.has(t.id) && !restoredThreatIds.has(t.id)) {
             quarantinedThreats.set(t.id, t);
             // Hide corresponding row if it exists in DOM
             const row = document.querySelector(`tr[data-mailflow-id="${t.id}"], .zA[data-mailflow-id="${t.id}"]`);
@@ -208,13 +222,14 @@
         // 2. Reconcile Moderate Threats:
         for (const [id] of moderateThreats.entries()) {
           if (!backendModIds.has(id)) {
+            restoredThreatIds.add(id);
             moderateThreats.delete(id);
             changed = true;
           }
         }
 
         backendModList.forEach(t => {
-          if (!moderateThreats.has(t.id)) {
+          if (!moderateThreats.has(t.id) && !restoredThreatIds.has(t.id)) {
             moderateThreats.set(t.id, t);
             changed = true;
           }
@@ -746,6 +761,11 @@
       }).catch(() => {});
     } catch (e) {}
 
+    restoredThreatIds.add(threatId);
+    quarantinedThreats.delete(threatId);
+    moderateThreats.delete(threatId);
+    persistStoredThreats();
+
     let row = threat ? threat.row : null;
     if (!row) {
       row = document.querySelector(`tr[data-mailflow-id="${threatId}"], .zA[data-mailflow-id="${threatId}"]`);
@@ -754,6 +774,7 @@
     if (row) {
       row.classList.remove('mailflow-quarantine-slide');
       row.classList.add('mailflow-restored-row');
+      row.dataset.mailflowRestored = 'true';
       delete row.dataset.mfRisk;
       row.style.display = '';
 
@@ -770,8 +791,6 @@
       }, 1000);
     }
 
-    quarantinedThreats.delete(threatId);
-    persistStoredThreats();
     updateSidebarBadge();
     renderMailFlowDashboard();
 
@@ -888,6 +907,12 @@
 
     if (!btn || btn.classList.contains('scanning')) return;
 
+    if (row.dataset.mailflowId && restoredThreatIds.has(row.dataset.mailflowId)) {
+      restoredThreatIds.delete(row.dataset.mailflowId);
+      localStorage.setItem(STORAGE_KEY_RESTORED, JSON.stringify(Array.from(restoredThreatIds)));
+    }
+    delete row.dataset.mailflowRestored;
+
     // Instant visual feedback on button and row
     btn.className = 'mailflow-scan-btn scanning';
     btn.innerHTML = `<div class="mailflow-scan-spinner"></div>`;
@@ -990,11 +1015,13 @@
     if (!sender && !subject) return null;
     
     for (const [id, threat] of quarantinedThreats.entries()) {
+      if (restoredThreatIds.has(id)) continue;
       if (threat.sender === sender && threat.subject === subject) {
         return { ...threat, id };
       }
     }
     for (const [id, threat] of moderateThreats.entries()) {
+      if (restoredThreatIds.has(id)) continue;
       if (threat.sender === sender && threat.subject === subject) {
         return { ...threat, id };
       }
@@ -1074,16 +1101,24 @@
       return;
     }
 
+    if (row.dataset.mailflowRestored === 'true' || (row.dataset.mailflowId && restoredThreatIds.has(row.dataset.mailflowId))) {
+      row.style.display = '';
+      delete row.dataset.mfRisk;
+    }
+
     const { sender, subject } = extractRowMetadata(row);
     const matchedThreat = findMatchedThreat(sender, subject);
 
-    if (matchedThreat) {
+    if (matchedThreat && !restoredThreatIds.has(matchedThreat.id) && row.dataset.mailflowRestored !== 'true') {
       row.dataset.mailflowId = matchedThreat.id;
       row.dataset.mfRisk = matchedThreat.tier;
 
       if (matchedThreat.tier === 'high') {
         row.style.display = 'none';
       }
+    } else if (row.dataset.mailflowRestored === 'true' || (row.dataset.mailflowId && restoredThreatIds.has(row.dataset.mailflowId))) {
+      delete row.dataset.mfRisk;
+      row.style.display = '';
     }
 
     const actionToolbar = row.querySelector('ul.bq4, ul.aqL, ul[role="toolbar"], td.bq9 ul, .bq8 ul, .a4y ul, td.yX ul, ul.bqe, ul.bqZ');
