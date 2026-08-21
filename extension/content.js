@@ -876,7 +876,49 @@
     }
   }
 
-  function createScanButton(row) {
+  function findMatchedThreat(sender, subject) {
+    if (!sender && !subject) return null;
+    
+    for (const [id, threat] of quarantinedThreats.entries()) {
+      if (threat.sender === sender && threat.subject === subject) {
+        return { ...threat, id };
+      }
+    }
+    for (const [id, threat] of moderateThreats.entries()) {
+      if (threat.sender === sender && threat.subject === subject) {
+        return { ...threat, id };
+      }
+    }
+    return null;
+  }
+
+  function applyButtonState(actionItem, threat) {
+    if (!actionItem) return;
+    const scanBtn = actionItem.querySelector('.mailflow-scan-btn');
+    if (!scanBtn) return;
+
+    if (threat) {
+      if (threat.tier === 'moderate') {
+        scanBtn.className = 'mailflow-scan-btn verdict-moderate';
+        scanBtn.innerHTML = ICONS.warning;
+        actionItem.setAttribute('data-tooltip', `MailFlow Warning: ${threat.threat_type || 'Moderate'} (${threat.risk_score}/100)`);
+      } else if (threat.tier === 'high') {
+        scanBtn.className = 'mailflow-scan-btn verdict-high';
+        scanBtn.innerHTML = ICONS.alert;
+        actionItem.setAttribute('data-tooltip', `MailFlow Threat: ${threat.threat_type || 'High Risk'} (${threat.risk_score}/100)`);
+      } else if (threat.tier === 'low') {
+        scanBtn.className = 'mailflow-scan-btn verdict-low';
+        scanBtn.innerHTML = ICONS.check;
+        actionItem.setAttribute('data-tooltip', `MailFlow: Clean (${threat.risk_score}/100)`);
+      }
+    } else {
+      scanBtn.className = 'mailflow-scan-btn';
+      scanBtn.innerHTML = ICONS.shieldRow;
+      actionItem.setAttribute('data-tooltip', 'MailFlow Scan');
+    }
+  }
+
+  function createScanButton(row, matchedThreat = null) {
     const actionItem = document.createElement('li');
     actionItem.className = 'mailflow-row-action-item bqX';
     actionItem.setAttribute('role', 'button');
@@ -894,6 +936,10 @@
     scanBtn.innerHTML = ICONS.shieldRow;
 
     actionItem.appendChild(scanBtn);
+
+    if (matchedThreat) {
+      applyButtonState(actionItem, matchedThreat);
+    }
 
     const onTrigger = (e) => {
       e.preventDefault();
@@ -914,31 +960,43 @@
   function ensureRowHasScanButton(row) {
     if (!row) return;
 
-    // Check if this row matches a previously quarantined threat
     const { sender, subject } = extractRowMetadata(row);
-    quarantinedThreats.forEach((threat, id) => {
-      if (threat.sender === sender && threat.subject === subject) {
-        row.dataset.mailflowId = id;
-        row.dataset.mfRisk = 'high';
+    const matchedThreat = findMatchedThreat(sender, subject);
+
+    if (matchedThreat) {
+      row.dataset.mailflowId = matchedThreat.id;
+      row.dataset.mfRisk = matchedThreat.tier;
+
+      if (matchedThreat.tier === 'high') {
         row.style.display = 'none';
       }
-    });
+    }
 
     const actionToolbar = row.querySelector('ul.bq4, ul.aqL, ul[role="toolbar"], td.bq9 ul, .bq8 ul, .a4y ul, td.yX ul, ul.bqe, ul.bqZ');
     
     if (actionToolbar) {
       const existing = actionToolbar.querySelector('.mailflow-row-action-item');
       if (!existing) {
-        const button = createScanButton(row);
+        const button = createScanButton(row, matchedThreat);
         actionToolbar.appendChild(button);
-      } else if (actionToolbar.lastElementChild !== existing) {
-        actionToolbar.appendChild(existing);
+      } else {
+        if (actionToolbar.lastElementChild !== existing) {
+          actionToolbar.appendChild(existing);
+        }
+        if (matchedThreat) {
+          applyButtonState(existing, matchedThreat);
+        }
       }
     } else {
       const actionCell = row.querySelector('td.yX, td.bq9, td.a4y, td.xY');
-      if (actionCell && !actionCell.querySelector('.mailflow-row-action-item')) {
-        const button = createScanButton(row);
-        actionCell.appendChild(button);
+      if (actionCell) {
+        const existing = actionCell.querySelector('.mailflow-row-action-item');
+        if (!existing) {
+          const button = createScanButton(row, matchedThreat);
+          actionCell.appendChild(button);
+        } else if (matchedThreat) {
+          applyButtonState(existing, matchedThreat);
+        }
       }
     }
   }
