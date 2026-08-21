@@ -132,6 +132,12 @@
           DOM.authErrorText.textContent = 'Invalid credentials. Hint: admin@mailflow / 1234';
         }
       }
+      const card = DOM.authView?.querySelector('div');
+      if (card) {
+        card.classList.remove('auth-shake');
+        void card.offsetWidth; // Trigger reflow
+        card.classList.add('auth-shake');
+      }
       if (DOM.authPassword) {
         DOM.authPassword.value = '';
         DOM.authPassword.focus();
