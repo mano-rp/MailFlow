@@ -1,6 +1,6 @@
 /**
  * MailFlow Chrome Extension - Content Script
- * Native Gmail DOM Injections & Rock-Solid UI Synchronization
+ * Native Gmail DOM Injections & Real-Time Threat Evaluation Engine
  */
 
 (function () {
@@ -12,6 +12,10 @@
   let observer = null;
   let scanDebounceTimer = null;
   let heartbeatTimer = null;
+
+  // In-memory threat stores
+  const quarantinedThreats = new Map();
+  const moderateThreats = new Map();
 
   let currentSettings = {
     showInlineRows: true,
@@ -35,8 +39,22 @@
     refresh: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
     </svg>`,
-    check: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    check: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#1e8e3e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="20 6 9 17 4 12"/>
+    </svg>`,
+    warning: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>`,
+    alert: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="15" y1="9" x2="9" y2="15"/>
+      <line x1="9" y1="9" x2="15" y2="15"/>
+    </svg>`,
+    restore: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="1 4 1 10 7 10"/>
+      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
     </svg>`
   };
 
@@ -129,7 +147,9 @@
     let iconSvg = ICONS.shieldRow;
     if (type === 'success') {
       iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
-    } else if (type === 'warning' || type === 'error') {
+    } else if (type === 'warning') {
+      iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+    } else if (type === 'error' || type === 'alert') {
       iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#ea4335" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
     }
 
@@ -273,7 +293,7 @@
 
   /**
    * =========================================================================
-   * MODULE 3: ROCK-SOLID GMAIL LIGHT MODE VIEW & STATE SYNC
+   * MODULE 3: GMAIL LIGHT MODE VIEW & THREAT LISTS
    * =========================================================================
    */
 
@@ -294,40 +314,6 @@
     if (!placeholder) {
       placeholder = document.createElement('div');
       placeholder.id = 'mailflow-placeholder-view';
-      placeholder.innerHTML = `
-        <div class="mailflow-view-header">
-          <div class="mailflow-view-title-group">
-            <h1 class="mailflow-view-title">
-              ${ICONS.shieldHeader}
-              MailFlow
-            </h1>
-            <span class="mailflow-view-badge">Suspected Emails</span>
-          </div>
-          <div class="mailflow-view-actions">
-            <button id="mailflow-btn-refresh-view" class="mailflow-btn-action">
-              ${ICONS.refresh}
-              <span>Refresh</span>
-            </button>
-          </div>
-        </div>
-        <div class="mailflow-view-body">
-          <div class="mailflow-empty-shield-icon">
-            ${ICONS.shieldHeader}
-          </div>
-          <h2 class="mailflow-empty-heading">No suspected emails</h2>
-          <p class="mailflow-empty-subtext">
-            Emails flagged by MailFlow's SME Shield will appear here for quarantine review and defanged link analysis.
-          </p>
-        </div>
-      `;
-
-      const refreshBtn = placeholder.querySelector('#mailflow-btn-refresh-view');
-      if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
-          showToast('MailFlow suspected emails list refreshed', 'info');
-        });
-      }
-
       mainContainer.appendChild(placeholder);
     } else if (placeholder.parentElement !== mainContainer) {
       mainContainer.appendChild(placeholder);
@@ -382,8 +368,7 @@
 
   /**
    * =========================================================================
-   * MODULE 4: UNIVERSAL EMAIL ROW SCAN BUTTON INJECTION (RIGHT-MOST ACTION)
-   * Appends to the end of Gmail's native hover action toolbar
+   * MODULE 4: EMAIL METADATA EXTRACTION & SCAN HANDLER
    * =========================================================================
    */
 
@@ -403,7 +388,13 @@
       subject = subjectEl.innerText.trim() || 'No Subject';
     }
 
-    return { sender, subject };
+    let snippet = '';
+    const snippetEl = row.querySelector('.y2, span.y2, .Zt');
+    if (snippetEl) {
+      snippet = snippetEl.innerText.trim();
+    }
+
+    return { sender, subject, snippet };
   }
 
   async function handleScanClick(row, btn, e) {
@@ -412,33 +403,33 @@
 
     if (btn.classList.contains('scanning')) return;
 
-    const { sender, subject } = extractRowMetadata(row);
+    const { sender, subject, snippet } = extractRowMetadata(row);
 
+    // Enter asynchronous scanning state with loading spinner
     btn.className = 'mailflow-scan-btn scanning';
     btn.innerHTML = `<div class="mailflow-scan-spinner"></div>`;
 
+    const minLoadingTime = 900;
+    const startTime = performance.now();
+
     try {
-      const startTime = performance.now();
-      const response = await fetch(`${BACKEND_URL}/api/scan-ping`, {
+      const response = await fetch(`${BACKEND_URL}/api/scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ sender, subject })
+        body: JSON.stringify({ sender, subject, snippet })
       });
 
-      const elapsed = Math.round(performance.now() - startTime);
+      const elapsed = performance.now() - startTime;
+      if (elapsed < minLoadingTime) {
+        await new Promise(r => setTimeout(r, minLoadingTime - elapsed));
+      }
 
       if (response.ok) {
         const data = await response.json();
-        btn.className = 'mailflow-scan-btn verdict-safe';
-        btn.innerHTML = ICONS.check;
-
-        showToast(
-          `MailFlow: "${subject.substring(0, 30)}${subject.length > 30 ? '...' : ''}" from ${sender} is SAFE (${data.latency_ms || elapsed}ms)`,
-          'success'
-        );
+        applyScanVerdict(row, btn, data);
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -447,15 +438,19 @@
       btn.innerHTML = ICONS.shieldRow;
 
       showToast(
-        '⚠️ Backend offline (:8000). Start ./start_backend.sh to scan threads.',
-        'warning'
+        '⚠️ Backend offline (:8000). Start ./start_backend.sh to evaluate emails.',
+        'error'
       );
-    }
 
-    setTimeout(() => {
-      btn.className = 'mailflow-scan-btn';
-      btn.innerHTML = ICONS.shieldRow;
-    }, 2800);
+      setTimeout(() => {
+        btn.className = 'mailflow-scan-btn';
+        btn.innerHTML = ICONS.shieldRow;
+      }, 3000);
+    }
+  }
+
+  function applyScanVerdict(row, btn, data) {
+    // Handled in upcoming commits
   }
 
   function createScanButton(row) {
@@ -486,19 +481,17 @@
   function ensureRowHasScanButton(row) {
     if (!row) return;
 
-    // Find Gmail's native hover action toolbar (ul)
     const actionToolbar = row.querySelector('ul.bq4, ul.aqL, ul[role="toolbar"], td.bq9 ul, .bq8 ul, .a4y ul, td.yX ul, ul.bqe, ul.bqZ');
     
     if (actionToolbar) {
       const existing = actionToolbar.querySelector('.mailflow-row-action-item');
       if (!existing) {
         const button = createScanButton(row);
-        actionToolbar.appendChild(button); // Appends as the RIGHT-MOST action item
+        actionToolbar.appendChild(button);
       } else if (actionToolbar.lastElementChild !== existing) {
-        actionToolbar.appendChild(existing); // Keeps it right-most
+        actionToolbar.appendChild(existing);
       }
     } else {
-      // Fallback container if ul is not created yet
       const actionCell = row.querySelector('td.yX, td.bq9, td.a4y, td.xY');
       if (actionCell && !actionCell.querySelector('.mailflow-row-action-item')) {
         const button = createScanButton(row);
@@ -514,10 +507,6 @@
     });
   }
 
-  /**
-   * Delegated hover interceptor: Whenever user hovers over ANY row,
-   * verify and inject the button instantly as the right-most item.
-   */
   function setupHoverDelegation() {
     document.addEventListener('mouseover', (e) => {
       const row = e.target.closest('tr.zA, .zA');
