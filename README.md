@@ -6,7 +6,7 @@
 
 ## Architecture Overview
 
-```
+``` 
 MailFlow/
 ├── start_backend.sh          # One-click start script with clean Ctrl+C shutdown
 ├── backend/                  # Minimal FastAPI Health-Check & Ping Server
