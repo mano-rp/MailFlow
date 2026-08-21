@@ -531,7 +531,6 @@
             ${ICONS.shieldHeader}
             MailFlow
           </h1>
-          <span class="mailflow-view-badge">Threat Center</span>
         </div>
         <div class="mailflow-view-actions">
           ${hasItems ? `
