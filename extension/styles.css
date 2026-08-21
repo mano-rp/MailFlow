@@ -317,6 +317,30 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   gap: 8px;
 }
 
+.mailflow-section-title-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.mailflow-section-title-tag.yellow {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.mailflow-section-title-tag.red {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
 .mailflow-native-section-count {
   font-size: 11px;
   font-weight: 600;
@@ -324,6 +348,18 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   border-radius: 10px;
   background-color: #f1f3f4;
   color: #444746;
+}
+
+.mailflow-native-section-count.yellow {
+  background-color: #fde68a;
+  color: #78350f;
+  font-weight: 700;
+}
+
+.mailflow-native-section-count.red {
+  background-color: #fecaca;
+  color: #7f1d1d;
+  font-weight: 700;
 }
 
 /* Gmail-Native Table Row Item */

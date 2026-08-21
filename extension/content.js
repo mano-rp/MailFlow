@@ -497,8 +497,8 @@
             <div class="mailflow-native-section">
               <div class="mailflow-native-section-header">
                 <div class="mailflow-native-section-title">
-                  <span>Quarantined Threats</span>
-                  <span class="mailflow-native-section-count">${totalQuarantined}</span>
+                  <span class="mailflow-section-title-tag red">Quarantined Threats</span>
+                  <span class="mailflow-native-section-count red">${totalQuarantined}</span>
                 </div>
               </div>
               <div class="mailflow-table-list">
@@ -511,8 +511,8 @@
             <div class="mailflow-native-section">
               <div class="mailflow-native-section-header">
                 <div class="mailflow-native-section-title">
-                  <span>Watchlist & Moderate Risks</span>
-                  <span class="mailflow-native-section-count">${totalModerate}</span>
+                  <span class="mailflow-section-title-tag yellow">Watchlist & Moderate Risks</span>
+                  <span class="mailflow-native-section-count yellow">${totalModerate}</span>
                 </div>
               </div>
               <div class="mailflow-table-list">
