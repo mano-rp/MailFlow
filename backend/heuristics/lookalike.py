@@ -1,13 +1,14 @@
 """
 Step 4: Sender & Lookalike Domain Anomaly Module
-Detects homoglyphs, typosquatting (e.g. paypa1, micros0ft, g00gle), suspicious subdomains, and sender spoofing.
+Detects homoglyphs, typosquatting, deceptive URL userinfo spoofing (@ syntax), high-risk TLDs, and fake portal hostnames.
 """
 
 import re
+from urllib.parse import urlparse
 from typing import List, Tuple, Set
 from .base import StepResult
 
-# Legitimate trusted root domains to avoid false-positive lookalike detections
+# Legitimate trusted root domains
 TRUSTED_ROOT_DOMAINS: Set[str] = {
     "google.com", "gmail.com", "microsoft.com", "office.com", "outlook.com",
     "paypal.com", "apple.com", "amazon.com", "netflix.com", "github.com",
@@ -15,7 +16,7 @@ TRUSTED_ROOT_DOMAINS: Set[str] = {
     "docusign.com", "zoom.us", "dropbox.com", "slack.com", "stripe.com"
 }
 
-# Strict homoglyph patterns that ONLY match actual deceptive character substitutions
+# Strict homoglyph patterns targeting deceptive character substitutions
 STRICT_HOMOGLYPH_PATTERNS: List[Tuple[re.Pattern, int, str]] = [
     (re.compile(r"\b(?:paypa[1!i]|p[a4]ypal|p[a4]ypa[1!i])\b", re.I), 55, "PayPal Typosquatting / Homoglyph"),
     (re.compile(r"\b(?:micros0ft|m1crosoft|m1cr0s0ft|m[i1]cr0soft)\b", re.I), 55, "Microsoft Typosquatting / Homoglyph"),
@@ -29,13 +30,16 @@ STRICT_HOMOGLYPH_PATTERNS: List[Tuple[re.Pattern, int, str]] = [
     (re.compile(r"\b(?:chase[-_]verify|chase[-_]security|bofa[-_]auth)\b", re.I), 55, "Bank Domain Impersonation"),
 ]
 
-# Deceptive infrastructure patterns
+# Deceptive infrastructure patterns in sender / headers
 INFRASTRUCTURE_PATTERNS: List[Tuple[re.Pattern, int, str]] = [
     (re.compile(r"([a-z0-9\-_]+(?:-security|-support|-verify|-billing|-auth|-login|-service|-alert)\.[a-z]{2,})", re.I), 40, "Deceptive Keyword-Laden Security Domain"),
-    (re.compile(r"\.(xyz|top|work|click|country|gq|cf|tk|ml|ga|rest|bar|bid|stream|buzz|monster|fit|live)\b", re.I), 35, "High-Risk Top-Level Domain (TLD)"),
+    (re.compile(r"\.(xyz|top|work|click|country|gq|cf|tk|ml|ga|rest|bar|bid|stream|buzz|monster|fit|live|sbs|pw|icu|cfd|link|cc)\b", re.I), 35, "High-Risk Top-Level Domain (TLD)"),
     (re.compile(r"(?:support|security|admin|billing|helpdesk|service|verify)@[a-z0-9\-_]+\.[a-z0-9\-_]+\.[a-z]{2,}", re.I), 30, "Multi-tier Generic Admin Subdomain"),
     (re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b"), 45, "Raw IP Address in Sender / Lure"),
 ]
+
+# High-Risk Deceptive URL Patterns in Email Body / Snippet
+URL_EXTRACTOR = re.compile(r"(https?://[^\s<>\"']+)", re.I)
 
 
 def extract_email_address(text: str) -> str:
@@ -46,15 +50,14 @@ def extract_email_address(text: str) -> str:
 
 def evaluate_lookalike(sender: str, subject: str = "", snippet: str = "") -> StepResult:
     """
-    Evaluates sender identity, lookalike domains, and homoglyph spoofing signals.
+    Evaluates sender identity, lookalike domains, deceptive URL userinfo spoofing, and link anomalies.
     """
     sender_clean = sender.lower().strip()
+    full_text = f"{subject} {snippet}".strip()
     email_addr = extract_email_address(sender_clean)
     
     # Extract domain from email if available
     domain = email_addr.split("@")[-1] if "@" in email_addr else sender_clean
-
-    # Check if domain belongs to a trusted provider
     is_trusted_domain = any(domain.endswith(trusted) for trusted in TRUSTED_ROOT_DOMAINS)
 
     matched_rules: List[str] = []
@@ -67,7 +70,7 @@ def evaluate_lookalike(sender: str, subject: str = "", snippet: str = "") -> Ste
             matched_rules.append(f"{rule_desc} (flagged: '{matches[0]}')")
             total_score += weight
 
-    # 2. Check for deceptive infrastructure (skip if trusted domain)
+    # 2. Check for deceptive infrastructure on sender (skip if trusted domain)
     if not is_trusted_domain:
         for pattern, weight, rule_desc in INFRASTRUCTURE_PATTERNS:
             matches = pattern.findall(sender_clean)
@@ -78,11 +81,30 @@ def evaluate_lookalike(sender: str, subject: str = "", snippet: str = "") -> Ste
                 matched_rules.append(f"{rule_desc} (flagged: '{matches[0]}')")
                 total_score += weight
 
-        # 3. Check for obvious digit replacement in sender string (e.g. micros0ft, paypa1)
         if re.search(r"[a-z]{3,}[0-9]+[a-z]{2,}", sender_clean):
             if not any("Typosquatting" in r for r in matched_rules):
                 matched_rules.append("Suspicious alphanumeric character substitution in sender")
                 total_score += 30
+
+    # 3. Deep URL Inspection in Subject & Snippet Payload
+    urls = URL_EXTRACTOR.findall(full_text)
+    for raw_url in urls:
+        # Check for HTTP Basic Auth Userinfo Spoofing (@ character before hostname)
+        # e.g., https://outlook.office.com:portal@quota-fix.sbs/renew
+        if "@" in raw_url:
+            matched_rules.append("Deceptive URL Userinfo Spoofing (@ syntax masquerade)")
+            total_score += 55
+
+        # Check for High-Risk TLDs in links
+        tld_match = re.search(r"\.(sbs|xyz|top|click|work|monster|buzz|pw|icu|cfd|gq|cf|tk|ml|ga|rest|bar|link|cc)[/:?#]", raw_url + "/")
+        if tld_match:
+            matched_rules.append(f"High-Risk Phishing TLD in Link (flagged: '.{tld_match.group(1)}')")
+            total_score += 40
+
+        # Check for deceptive keyword-stuffed hostnames in links
+        if re.search(r"(?:quota-fix|mailbox-verify|storage-renew|portal-login|auth-verify|account-fix|secure-update)", raw_url, re.I):
+            matched_rules.append("Deceptive Credential / Quota Portal Hostname")
+            total_score += 45
 
     clamped_score = min(float(total_score), 100.0)
     description = (

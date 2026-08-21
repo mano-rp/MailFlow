@@ -1,6 +1,6 @@
 """
 Step 3: Credential Harvesting & Auth Manipulation Module
-Detects password harvesting lures, fake 2FA, session expiry traps, quishing, and malicious signature links.
+Detects password harvesting lures, fake 2FA, mailbox quota phishing, IT helpdesk impersonation, and malicious signature links.
 """
 
 import re
@@ -8,9 +8,14 @@ from typing import List, Tuple
 from .base import StepResult
 
 CREDENTIAL_PATTERNS: List[Tuple[re.Pattern, int, str]] = [
+    # Mailbox Quota & Storage Phishing
+    (re.compile(r"\b(mailbox\s+(?:storage\s+)?(?:full|limit|capacity|exceeded)|storage\s+(?:limit\s+reached|full|quota\s+exceeded)|increase\s+(?:your\s+)?quota|incoming\s+mail\s+(?:will\s+be|has\s+been)\s+(?:rejected|blocked|held|suspended)|avoid\s+(?:losing\s+messages|email\s+loss|account\s+closure))\b", re.I), 40, "Mailbox Storage / Quota Phishing Lure"),
+    (re.compile(r"\b(it\s+(?:helpdesk|support|department|admin(?:istration)?)|system\s+administrator|office\s*365\s+admin|google\s+workspace\s+admin|webmail\s+support)\b", re.I), 30, "IT Helpdesk / Administrator Impersonation"),
+
     # Password & Account Hijacking
-    (re.compile(r"\b(password\s+(?:reset|expiry|expired|change\s+request|will\s+expire)|reset\s+your\s+password|update\s+your\s+password)\b", re.I), 30, "Password Reset / Expiry Lure"),
+    (re.compile(r"\b(password\s+(?:reset|expiry|expired|change\s+request|will\s+expire)|reset\s+your\s+password|update\s+your\s+password)\b", re.I), 35, "Password Reset / Expiry Lure"),
     (re.compile(r"\b(verify\s+(?:your\s+)?(?:account|credentials|identity|email|details)|re-?authenticate|validate\s+(?:your\s+)?account)\b", re.I), 35, "Account Credential Verification"),
+    (re.compile(r"\b(confirm\s+(?:your\s+)?(?:account\s+)?credentials|login\s+and\s+confirm|re-?validate\s+mailbox|update\s+account\s+to\s+continue)\b", re.I), 40, "Explicit Credential Submission Demand"),
     (re.compile(r"\b(unusual\s+(?:activity|sign-?in|login|access)|suspicious\s+login\s+attempt|unauthorized\s+access|security\s+alert\s+for\s+your\s+account)\b", re.I), 25, "Fake Security Alert / Breach Lure"),
     (re.compile(r"\b(2fa\s+(?:code|verification|disabled|required|reset)|mfa\s+(?:prompt|code|device)|one-time\s+passcode|otp\s+code)\b", re.I), 30, "Two-Factor / MFA Hijacking Lure"),
     
@@ -47,7 +52,7 @@ def evaluate_credentials(subject: str, snippet: str, sender: str = "") -> StepRe
             matched_rules.append(f"{rule_desc} (matched: '{matches[0]}')")
             total_score += weight
 
-    clamped_score = min(float(total_score), 75.0)
+    clamped_score = min(float(total_score), 85.0)
     description = (
         f"Detected {len(matched_rules)} credential harvesting patterns."
         if matched_rules

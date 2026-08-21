@@ -1,6 +1,6 @@
 """
 Step 1: Urgency & Coercion Detection Module
-Identifies psychological pressure, artificial deadlines, secrecy demands, and fear-inducing triggers.
+Identifies psychological pressure, artificial deadlines, service loss threats, and fear-inducing triggers.
 """
 
 import re
@@ -9,11 +9,12 @@ from .base import StepResult
 
 URGENCY_PATTERNS: List[Tuple[re.Pattern, int, str]] = [
     # Explicit Urgency & Deadlines
-    (re.compile(r"\b(urgent|urgently|immediate action required|action required immediately|urgent\s+task)\b", re.I), 25, "High Urgency Call-to-Action"),
-    (re.compile(r"\b(within\s+(?:24|12|48|2|1)\s*(?:hours?|hrs?)|expires\s+today|deadline\s+approaching|time\s+sensitive)\b", re.I), 20, "Time-Pressure Artificial Deadline"),
+    (re.compile(r"\b(urgent|urgently|immediate action required|action required immediately|urgent\s+task|action\s+required:?)\b", re.I), 25, "High Urgency Call-to-Action"),
+    (re.compile(r"\b(within\s+(?:24|12|48|2|1)\s*(?:hours?|hrs?)|expires\s+today|deadline\s+approaching|time\s+sensitive|act\s+today)\b", re.I), 20, "Time-Pressure Artificial Deadline"),
     
-    # Intimidation & Penalties
+    # Intimidation & Service Termination Threats
     (re.compile(r"\b(account\s+(?:suspended|locked|disabled|terminated|closed)|access\s+revoked)\b", re.I), 30, "Account Suspension Threat"),
+    (re.compile(r"\b(failure\s+to\s+(?:act|verify|update|comply)|permanently\s+(?:rejected|deleted|disabled|lost)|messages?\s+will\s+be\s+(?:permanently\s+)?(?:deleted|rejected|lost)|verify\s+to\s+avoid\s+loss)\b", re.I), 30, "Permanent Loss / Deletion Intimidation"),
     (re.compile(r"\b(final\s+notice|last\s+chance|immediate\s+response\s+required|warning\s+notice)\b", re.I), 20, "Coercive Final Notice Warning"),
     (re.compile(r"\b(failure\s+to\s+comply|legal\s+action|lawsuit|penalty\s+applied|compliance\s+audit)\b", re.I), 25, "Legal / Compliance Intimidation"),
 
@@ -25,7 +26,7 @@ URGENCY_PATTERNS: List[Tuple[re.Pattern, int, str]] = [
 
 def evaluate_urgency(subject: str, snippet: str, sender: str = "") -> StepResult:
     """
-    Evaluates urgency, psychological coercion, and executive secrecy pressure signals.
+    Evaluates urgency, psychological coercion, and service loss threats.
     """
     text = f"{subject} {snippet}".strip()
     if not text:
@@ -40,7 +41,7 @@ def evaluate_urgency(subject: str, snippet: str, sender: str = "") -> StepResult
             matched_rules.append(f"{rule_desc} (matched: '{matches[0]}')")
             total_score += weight
 
-    clamped_score = min(float(total_score), 70.0)
+    clamped_score = min(float(total_score), 65.0)
     description = (
         f"Detected {len(matched_rules)} urgency coercion signals."
         if matched_rules

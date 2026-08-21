@@ -36,30 +36,37 @@ def run_pipeline(payload: ScanPayload) -> ThreatRecord:
     steps: List[StepResult] = [step1, step2, step3, step4]
 
     # Cybersecurity composite scoring:
-    # Primary threat vector establishes the baseline, compounded moderately by secondary indicators
     step_scores = [s.score for s in steps]
     primary_score = max(step_scores) if step_scores else 0.0
 
     if primary_score > 0:
         secondary_sum = sum(s for s in step_scores) - primary_score
-        composite = primary_score + (secondary_sum * 0.20)
+        composite = primary_score + (secondary_sum * 0.25)
 
-        # Compound Threat Multipliers (Only high-threat combinations trigger high tier >= 75):
-        # 1. Lookalike domain + (Credentials OR Financial)
+        # High-Risk Multi-Vector Compound Attack Rules:
+        # 1. Deceptive URL Userinfo Spoofing (@ syntax) or High-Risk Phishing TLD in link
+        if any("Userinfo Spoofing" in r or "High-Risk Phishing TLD" in r or "Quota Portal" in r for r in step4.matched_rules):
+            composite = max(composite, 85.0)
+
+        # 2. Mailbox Storage / Quota Phish + Credential Verification / Login Demand
+        if any("Mailbox Storage" in r for r in step3.matched_rules) and (step3.score >= 35 or step1.score >= 25):
+            composite = max(composite, 84.0)
+
+        # 3. Lookalike domain on sender + (Credentials OR Financial)
         if step4.score >= 45 and (step3.score >= 25 or step2.score >= 25):
             composite = max(composite, 82.0)
 
-        # 2. Executive Secrecy/Urgency + Gift Card / Crypto Extortion
+        # 4. Executive Secrecy/Urgency + Gift Card / Crypto Extortion
         if step1.score >= 25 and (any("Gift Card" in r or "Crypto" in r for r in step2.matched_rules)):
             composite = max(composite, 80.0)
 
-        # 3. High-Risk Macro / Executable Payload Lures
+        # 5. High-Risk Macro / Executable Payload Lures
         if any("Macro" in r or "Executable" in r for r in step3.matched_rules):
             composite = max(composite, 85.0)
 
-        # 4. Critical Triple Threat: Account Suspension + Credential Verification + Lookalike / Strict Urgency
-        if step1.score >= 45 and step3.score >= 45 and step4.score >= 35:
-            composite = max(composite, 82.0)
+        # 6. Account Suspension Threat + Credential Verification Trap + High Urgency
+        if step1.score >= 45 and step3.score >= 40:
+            composite = max(composite, 80.0)
 
         final_score = int(min(max(round(composite), 0), 100))
     else:
@@ -70,7 +77,11 @@ def run_pipeline(payload: ScanPayload) -> ThreatRecord:
         tier = "high"
         color = "red"
         action = "quarantine_slide"
-        if any("Macro" in r or "Executable" in r for r in step3.matched_rules):
+        if any("Userinfo Spoofing" in r for r in step4.matched_rules):
+            threat_type = "Deceptive URL Spoofing / Phish"
+        elif any("Mailbox Storage" in r for r in step3.matched_rules):
+            threat_type = "Mailbox Quota Phishing Attack"
+        elif any("Macro" in r or "Executable" in r for r in step3.matched_rules):
             threat_type = "Malicious Payload / Attachment Phish"
         elif any("Gift Card" in r for r in step2.matched_rules) and step1.score >= 25:
             threat_type = "Executive Impersonation / Gift Card Fraud"
@@ -88,6 +99,8 @@ def run_pipeline(payload: ScanPayload) -> ThreatRecord:
         action = "flag_warning"
         if any("QR Code" in r for r in step3.matched_rules):
             threat_type = "QR Code Verification Notice"
+        elif any("Mailbox Storage" in r for r in step3.matched_rules):
+            threat_type = "Mailbox Storage Notice"
         elif any("Bank Account Redirection" in r or "Audit" in r for r in step2.matched_rules):
             threat_type = "Unverified Bank Account Update"
         elif step2.score >= 20:
