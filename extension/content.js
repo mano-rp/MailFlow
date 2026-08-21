@@ -450,7 +450,28 @@
   }
 
   function applyScanVerdict(row, btn, data) {
-    // Handled in upcoming commits
+    const { id, tier, risk_score, threat_type, explanation } = data;
+
+    row.dataset.mailflowId = id;
+
+    if (tier === 'low') {
+      btn.className = 'mailflow-scan-btn verdict-low';
+      btn.innerHTML = ICONS.check;
+      btn.setAttribute('title', `MailFlow: Clean (${risk_score}/100)`);
+      showToast(`🟢 MailFlow: Verified Safe (${risk_score}/100) — No threat vectors detected`, 'success');
+    } else if (tier === 'moderate') {
+      btn.className = 'mailflow-scan-btn verdict-moderate';
+      btn.innerHTML = ICONS.warning;
+      btn.setAttribute('title', `MailFlow Warning: ${threat_type} (${risk_score}/100)`);
+      showToast(`🟡 MailFlow Caution: ${threat_type} (Score: ${risk_score}/100)`, 'warning');
+      moderateThreats.set(id, { ...data, row });
+    } else if (tier === 'high') {
+      btn.className = 'mailflow-scan-btn verdict-high';
+      btn.innerHTML = ICONS.alert;
+      btn.setAttribute('title', `MailFlow Threat: ${threat_type} (${risk_score}/100)`);
+      showToast(`🔴 MailFlow Alert: ${threat_type} (Score: ${risk_score}/100) Quarantined`, 'alert');
+      quarantinedThreats.set(id, { ...data, row });
+    }
   }
 
   function createScanButton(row) {

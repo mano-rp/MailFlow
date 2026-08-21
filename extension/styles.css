@@ -16,9 +16,10 @@
   --mf-outline-variant: #c4c7c5;
   --mf-success: #1e8e3e;
   --mf-success-container: #e6f4ea;
-  --mf-error: #d93025;
-  --mf-error-container: #fce8e6;
-  --mf-warning: #b06000;
+  --mf-warning: #d97706;
+  --mf-warning-container: #fef3c7;
+  --mf-error: #dc2626;
+  --mf-error-container: #fee2e2;
   --mf-font: 'Google Sans', Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   --mf-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --mf-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -140,6 +141,24 @@
   justify-content: center !important;
   margin-left: auto !important;
   padding-left: 8px !important;
+  gap: 6px;
+}
+
+.mailflow-counter-badge {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  background-color: var(--mf-error) !important;
+  border-radius: 10px !important;
+  padding: 1px 6px !important;
+  min-width: 18px !important;
+  text-align: center !important;
+  line-height: 14px !important;
+  display: none;
+}
+
+.mailflow-counter-badge.visible {
+  display: inline-block !important;
 }
 
 .mailflow-status-dot {
@@ -162,18 +181,17 @@
 }
 
 .mailflow-status-dot.dot-red {
-  background-color: #d93025 !important;
-  box-shadow: 0 0 0 2px rgba(217, 48, 37, 0.2) !important;
+  background-color: #dc2626 !important;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25) !important;
 }
 
 .mailflow-status-dot.dot-yellow {
-  background-color: #f9ab00 !important;
-  box-shadow: 0 0 0 2px rgba(249, 171, 0, 0.2) !important;
+  background-color: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25) !important;
 }
 
 /* ==========================================================================
    2. Gmail Native Light Mode Tab View (Suspected Emails Hub)
-   Ultra-stable overlay container that never disappears or flickers
    ========================================================================== */
 #mailflow-placeholder-view {
   display: none !important;
@@ -199,113 +217,8 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   border-radius: 16px !important;
 }
 
-.mailflow-view-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid #e0e4eb;
-  background-color: #ffffff;
-  flex-shrink: 0;
-}
-
-.mailflow-view-title-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.mailflow-view-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f1f1f;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  letter-spacing: -0.2px;
-}
-
-.mailflow-view-badge {
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 12px;
-  background-color: #d3e3fd;
-  color: #041e49;
-}
-
-.mailflow-view-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mailflow-btn-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 18px;
-  border: 1px solid #dadce0;
-  background-color: #ffffff;
-  color: #1f1f1f;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.mailflow-btn-action:hover {
-  background-color: #f1f3f4;
-  border-color: #c4c7c5;
-}
-
-.mailflow-view-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  min-height: 400px;
-  padding: 48px 24px;
-  text-align: center;
-}
-
-.mailflow-empty-shield-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #e8f0fe;
-  color: #0b57d0;
-  margin-bottom: 20px;
-}
-
-.mailflow-empty-shield-icon svg {
-  width: 32px;
-  height: 32px;
-}
-
-.mailflow-empty-heading {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f1f1f;
-  margin-bottom: 8px;
-}
-
-.mailflow-empty-subtext {
-  font-size: 14px;
-  color: #5e5e5e;
-  max-width: 440px;
-  line-height: 1.5;
-}
-
 /* ==========================================================================
-   3. Email Row Hover Action Toolbar Button (🛡️ Right-Most Native Icon)
-   Inherits Gmail's native action toolbar flex alignment with pixel accuracy
+   3. Email Row Hover Action Toolbar Button (Dynamic 3-Color Indicators)
    ========================================================================== */
 .mailflow-row-action-item {
   display: inline-flex !important;
@@ -338,7 +251,7 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   color: #444746 !important;
   cursor: pointer !important;
   position: relative !important;
-  transition: background-color 0.15s ease, color 0.15s ease !important;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease !important;
   outline: none !important;
   user-select: none !important;
   box-sizing: border-box !important;
@@ -361,16 +274,43 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   flex-shrink: 0 !important;
 }
 
+/* Verdict: Low Risk (Green) */
+.mailflow-scan-btn.verdict-low {
+  background-color: rgba(30, 142, 62, 0.12) !important;
+  color: var(--mf-success) !important;
+}
+
+.mailflow-scan-btn.verdict-low:hover {
+  background-color: rgba(30, 142, 62, 0.2) !important;
+}
+
+/* Verdict: Moderate Risk (Yellow/Amber) */
+.mailflow-scan-btn.verdict-moderate {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+  color: var(--mf-warning) !important;
+}
+
+.mailflow-scan-btn.verdict-moderate:hover {
+  background-color: rgba(245, 158, 11, 0.24) !important;
+}
+
+/* Verdict: High Risk (Red) */
+.mailflow-scan-btn.verdict-high {
+  background-color: rgba(220, 38, 38, 0.14) !important;
+  color: var(--mf-error) !important;
+}
+
+.mailflow-scan-btn.verdict-high:hover {
+  background-color: rgba(220, 38, 38, 0.24) !important;
+}
+
 .mailflow-scan-btn.backend-offline {
   color: #dc2626 !important;
   opacity: 0.85 !important;
 }
 
-.mailflow-scan-btn.backend-offline:hover {
-  background-color: rgba(220, 38, 38, 0.1) !important;
-}
-
 .mailflow-scan-btn.scanning {
+  background-color: rgba(11, 87, 208, 0.1) !important;
   cursor: wait !important;
 }
 
@@ -381,14 +321,6 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   border-top-color: #0b57d0 !important;
   border-radius: 50% !important;
   animation: mailflow-spin 0.65s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
-}
-
-.mailflow-scan-btn.verdict-safe {
-  color: #1e8e3e !important;
-}
-
-.mailflow-scan-btn.verdict-safe .mailflow-scan-icon {
-  color: #1e8e3e !important;
 }
 
 .mailflow-hidden-by-setting {
@@ -412,7 +344,7 @@ body.mailflow-active-mode #mailflow-placeholder-view {
 .mailflow-toast {
   pointer-events: auto;
   min-width: 320px;
-  max-width: 480px;
+  max-width: 500px;
   background-color: #2b2d30;
   color: #f2f2f2;
   border-radius: 10px;
