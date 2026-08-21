@@ -1324,24 +1324,6 @@
 
     if (!subject && !sender) return;
 
-    const cacheKey = getCacheKey(sender, subject);
-    const cachedThreat = SCANNED_CACHE.get(cacheKey) || findMatchedThreat(sender, subject);
-
-    // Case 1: Already scanned and verified safe OR already acknowledged
-    if (cachedThreat) {
-      if (cachedThreat.tier === 'low' || cachedThreat.userAcknowledged) {
-        emailBody.dataset.mailflowShieldProcessed = 'true';
-        emailBody.style.display = '';
-        return;
-      }
-      // Flagged threat already in memory -> immediately render the threat shield!
-      emailBody.dataset.mailflowShieldProcessed = 'true';
-      emailBody.style.display = 'none';
-      injectThreadShield(messageCard, emailBody, cachedThreat, { sender, subject, snippet });
-      return;
-    }
-
-    // Case 2: Unseen / Unscanned email -> Sandboxed Pre-Open Evaluation!
     emailBody.dataset.mailflowShieldProcessed = 'true';
     emailBody.style.display = 'none';
 
