@@ -23,6 +23,7 @@
   let currentSettings = {
     showInlineRows: true,
     autoScan: true,
+    autoForwardAdmin: false,
   };
 
   // SVG Icons
@@ -800,7 +801,13 @@
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ sender, subject, snippet })
+        body: JSON.stringify({
+          sender,
+          subject,
+          snippet,
+          recipient: 'nithin@mailflow.com',
+          auto_forward_admin: Boolean(currentSettings.autoForwardAdmin)
+        })
       });
 
       const elapsed = performance.now() - startTime;
@@ -848,20 +855,22 @@
       btn.className = 'mailflow-scan-btn verdict-moderate';
       btn.innerHTML = ICONS.warning;
       if (actionItem) actionItem.setAttribute('data-tooltip', `MailFlow Warning: ${threat_type} (${risk_score}/100)`);
-      showToast(`🟡 MailFlow Caution: ${threat_type} (Score: ${risk_score}/100)`, 'warning');
+      const forwardNotice = currentSettings.autoForwardAdmin ? ' — Auto-forwarded to SME Admin' : '';
+      showToast(`🟡 MailFlow Caution: ${threat_type} (Score: ${risk_score}/100)${forwardNotice}`, 'warning');
       
       row.dataset.mfRisk = 'moderate';
-      moderateThreats.set(id, { ...data, row });
+      moderateThreats.set(id, { ...data, row, auto_forwarded: Boolean(currentSettings.autoForwardAdmin) });
       persistStoredThreats();
       updateSidebarBadge();
     } else if (tier === 'high') {
       btn.className = 'mailflow-scan-btn verdict-high';
       btn.innerHTML = ICONS.alert;
       if (actionItem) actionItem.setAttribute('data-tooltip', `MailFlow Threat: ${threat_type} (${risk_score}/100)`);
-      showToast(`🔴 Threat Quarantined: ${threat_type} (${risk_score}/100)`, 'alert');
+      const forwardNotice = currentSettings.autoForwardAdmin ? ' — Auto-forwarded to SME Admin' : '';
+      showToast(`🔴 Threat Quarantined: ${threat_type} (${risk_score}/100)${forwardNotice}`, 'alert');
       
       row.dataset.mfRisk = 'high';
-      quarantinedThreats.set(id, { ...data, row });
+      quarantinedThreats.set(id, { ...data, row, auto_forwarded: Boolean(currentSettings.autoForwardAdmin) });
       persistStoredThreats();
 
       // Smooth slide-to-right quarantine animation
@@ -1207,6 +1216,12 @@
       } else if (request.action === 'SCAN_SELECTED') {
         scanSelectedEmails();
         sendResponse({ status: 'started' });
+      } else if (request.action === 'SETTING_CHANGED') {
+        if (request.key) {
+          currentSettings[request.key] = request.value;
+          applySettings();
+        }
+        sendResponse({ status: 'updated' });
       }
       return true;
     });

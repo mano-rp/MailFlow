@@ -123,7 +123,19 @@ async function init() {
   if (DOM.toggleAutoforward) {
     DOM.toggleAutoforward.checked = settings.autoForwardAdmin ?? false;
     DOM.toggleAutoforward.addEventListener('change', (e) => {
-      storage.set({ autoForwardAdmin: e.target.checked });
+      const isEnabled = e.target.checked;
+      storage.set({ autoForwardAdmin: isEnabled });
+      if (typeof chrome !== 'undefined' && chrome.tabs) {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs && tabs[0] && tabs[0].id) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: 'SETTING_CHANGED',
+              key: 'autoForwardAdmin',
+              value: isEnabled
+            }, () => {});
+          }
+        });
+      }
     });
   }
 
