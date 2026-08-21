@@ -100,10 +100,24 @@
     <!-- Hairline Divider -->
     <hr class="section-divider">
 
-    <!-- Preferences / Auto-forward Section -->
+    <!-- Preferences / Shield Settings Section -->
     <section class="preferences-section">
+      <label class="setting-row" for="toggle-pre-open-shield">
+        <div class="setting-info">
+          <span class="setting-name">Pre-Open Threat Interception</span>
+          <span class="setting-desc">Scan and sandbox emails before rendering content</span>
+        </div>
+        <div class="m3-switch">
+          <input type="checkbox" id="toggle-pre-open-shield" checked>
+          <span class="m3-track"><span class="m3-thumb"></span></span>
+        </div>
+      </label>
+
       <label class="setting-row" for="toggle-autoforward">
-        <span class="setting-name">Auto-forward to SME Admin</span>
+        <div class="setting-info">
+          <span class="setting-name">Auto-forward to SME Admin</span>
+          <span class="setting-desc">Forward flagged threats to security lead</span>
+        </div>
         <div class="m3-switch">
           <input type="checkbox" id="toggle-autoforward">
           <span class="m3-track"><span class="m3-thumb"></span></span>

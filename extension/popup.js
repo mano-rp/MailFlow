@@ -10,6 +10,7 @@ const DOM = {
   btnScanPage: document.getElementById('btn-scan-page'),
   btnScanUnread: document.getElementById('btn-scan-unread'),
   btnScanSelected: document.getElementById('btn-scan-selected'),
+  togglePreOpenShield: document.getElementById('toggle-pre-open-shield'),
   toggleAutoforward: document.getElementById('toggle-autoforward'),
   themeBtnLight: document.getElementById('theme-btn-light'),
   themeBtnDark: document.getElementById('theme-btn-dark'),
@@ -18,6 +19,7 @@ const DOM = {
 const DEFAULT_SETTINGS = {
   theme: 'light',
   autoForwardAdmin: false,
+  mf_pre_open_shield: true,
 };
 
 // Storage helper with fallback
@@ -118,6 +120,26 @@ async function init() {
   // Apply Theme
   const currentTheme = settings.theme || 'light';
   setTheme(currentTheme);
+
+  // Apply Pre-Open Interception Shield Toggle
+  if (DOM.togglePreOpenShield) {
+    DOM.togglePreOpenShield.checked = settings.mf_pre_open_shield ?? true;
+    DOM.togglePreOpenShield.addEventListener('change', (e) => {
+      const isEnabled = e.target.checked;
+      storage.set({ mf_pre_open_shield: isEnabled });
+      if (typeof chrome !== 'undefined' && chrome.tabs) {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs && tabs[0] && tabs[0].id) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: 'SETTING_CHANGED',
+              key: 'mf_pre_open_shield',
+              value: isEnabled
+            }, () => {});
+          }
+        });
+      }
+    });
+  }
 
   // Apply Autoforward Toggle
   if (DOM.toggleAutoforward) {
