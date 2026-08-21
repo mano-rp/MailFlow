@@ -101,9 +101,27 @@
 
   /**
    * =========================================================================
-   * MODULE 1: TOAST NOTIFICATIONS
+   * MODULE 1: TOAST NOTIFICATIONS & SEARCH BAR HOOK
    * =========================================================================
    */
+
+  function setSearchBarText(text) {
+    const searchInput = document.querySelector('input[name="q"], input[aria-label*="Search"], form[role="search"] input');
+    if (searchInput) {
+      searchInput.value = text;
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
+
+  function clearSearchBarIfMailFlow() {
+    const searchInput = document.querySelector('input[name="q"], input[aria-label*="Search"], form[role="search"] input');
+    if (searchInput && (searchInput.value === 'in:MailFlow' || searchInput.value === 'in:mailflow')) {
+      searchInput.value = '';
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
 
   function showToast(message, type = 'info', actionLabel = null, onAction = null) {
     let container = document.getElementById('mailflow-toast-container');
@@ -167,7 +185,6 @@
     const nav = document.querySelector('div[role="navigation"]');
     if (!nav) return null;
 
-    // Priority search: Spam, All Mail, Drafts, Purchases, or Sent
     const spamEl = nav.querySelector('a[href*="#spam"], div[data-tooltip*="Spam"], a[title*="Spam"]');
     if (spamEl) {
       const aim = spamEl.closest('.aim') || spamEl.closest('.TO') || spamEl;
@@ -202,12 +219,10 @@
     const target = findSidebarTargetAnchor();
     if (!target || !target.container) return;
 
-    // Outer .aim matching native Gmail list item
     const aimWrapper = document.createElement('div');
     aimWrapper.id = 'mailflow-aim-wrapper';
     aimWrapper.className = 'aim mailflow-aim-item';
 
-    // Inner .TO button with exact .TN > .qj + .aio + .bsU structure
     const navItem = document.createElement('div');
     navItem.id = 'mailflow-sidebar-nav-item';
     navItem.className = 'TO mailflow-nav-item';
@@ -231,7 +246,7 @@
 
     navItem.addEventListener('click', (e) => {
       e.stopPropagation();
-      activateMailFlowView();
+      activateMailFlowView(true);
     });
 
     aimWrapper.appendChild(navItem);
@@ -267,8 +282,14 @@
   }
 
   function handleHashChange() {
-    if (isMailFlowTabActive) {
-      deactivateMailFlowView();
+    if (window.location.hash === '#mailflow') {
+      if (!isMailFlowTabActive) {
+        activateMailFlowView(false);
+      }
+    } else {
+      if (isMailFlowTabActive) {
+        deactivateMailFlowView();
+      }
     }
   }
 
@@ -286,13 +307,18 @@
            document.body;
   }
 
-  function activateMailFlowView() {
+  function activateMailFlowView(updateHash = true) {
     isMailFlowTabActive = true;
+
+    if (updateHash && window.location.hash !== '#mailflow') {
+      window.location.hash = 'mailflow';
+    }
+
+    setSearchBarText('in:MailFlow');
 
     const navItem = document.getElementById('mailflow-sidebar-nav-item');
     if (navItem) navItem.classList.add('active');
 
-    // Deselect Gmail's native active items
     document.querySelectorAll('div[role="navigation"] .nZ, div[role="navigation"] .active').forEach(el => {
       if (el.id !== 'mailflow-sidebar-nav-item') {
         el.classList.remove('nZ');
@@ -354,6 +380,8 @@
 
   function deactivateMailFlowView() {
     isMailFlowTabActive = false;
+
+    clearSearchBarIfMailFlow();
 
     const navItem = document.getElementById('mailflow-sidebar-nav-item');
     if (navItem) navItem.classList.remove('active');
@@ -530,6 +558,11 @@
     await checkBackendHeartbeat();
     injectSidebarItem();
     scanEmailRows();
+
+    // Check if directly loaded with #mailflow
+    if (window.location.hash === '#mailflow') {
+      activateMailFlowView(false);
+    }
 
     if (observer) observer.disconnect();
     observer = new MutationObserver(() => {
