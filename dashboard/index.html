@@ -330,22 +330,14 @@
         <!-- Threat Audit Table -->
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse table-fixed" id="threat-table">
-            <colgroup>
-              <col class="w-44 sm:w-48 lg:w-56"> <!-- Employee & Timestamp -->
-              <col class="w-auto"> <!-- Sender & Threat Subject -->
-              <col class="w-36 sm:w-40 lg:w-44"> <!-- Classification -->
-              <col class="w-20 sm:w-24"> <!-- Score -->
-              <col class="w-24 sm:w-28"> <!-- Status -->
-              <col class="w-28 sm:w-32 lg:w-36"> <!-- Actions -->
-            </colgroup>
             <thead>
               <tr class="bg-zinc-50 dark:bg-zinc-800/40 text-[10.5px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider border-b border-zinc-200 dark:border-zinc-800">
-                <th class="py-2.5 px-4">Employee & Timestamp</th>
-                <th class="py-2.5 px-4">Sender & Threat Subject</th>
-                <th class="py-2.5 px-4">Classification</th>
-                <th class="py-2.5 px-4">Score</th>
-                <th class="py-2.5 px-4">Status</th>
-                <th class="py-2.5 px-4 text-right">Actions</th>
+                <th class="py-3 px-4 w-[20%] text-left">Employee & Timestamp</th>
+                <th class="py-3 px-4 w-[34%] text-left">Sender & Threat Subject</th>
+                <th class="py-3 px-4 w-[20%] text-left">Classification</th>
+                <th class="py-3 px-4 w-[8%] text-left">Score</th>
+                <th class="py-3 px-4 w-[9%] text-left">Status</th>
+                <th class="py-3 px-4 w-[9%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="threat-table-body" class="divide-y divide-zinc-200 dark:divide-zinc-800 text-xs">

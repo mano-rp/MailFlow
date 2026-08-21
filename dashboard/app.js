@@ -763,10 +763,10 @@
 
     if (isHigh) {
       dotColor = 'bg-red-500';
-      statusText = '<span class="text-red-600 dark:text-red-400 font-medium">Quarantined</span>';
+      statusText = '<span class="text-red-600 dark:text-red-400 font-semibold">Quarantined</span>';
     } else if (isModerate) {
       dotColor = 'bg-amber-500';
-      statusText = '<span class="text-amber-600 dark:text-amber-400 font-medium">Watchlist</span>';
+      statusText = '<span class="text-amber-600 dark:text-amber-400 font-semibold">Watchlist</span>';
     }
 
     // Matched Rules list
@@ -781,8 +781,8 @@
       if (rules.length) {
         matchedRulesHtml = rules.map(r => `
           <li class="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-            <span class="w-1.5 h-1.5 rounded-full ${isHigh ? 'bg-red-500' : isModerate ? 'bg-amber-500' : 'bg-zinc-400'}"></span>
-            ${escapeHtml(r)}
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${isHigh ? 'bg-red-500' : isModerate ? 'bg-amber-500' : 'bg-zinc-400'}"></span>
+            <span>${escapeHtml(r)}</span>
           </li>
         `).join('');
         matchedRulesHtml = `<ul class="space-y-1">${matchedRulesHtml}</ul>`;
@@ -792,84 +792,88 @@
     const recipient = t.recipient || PRIMARY_EXTENSION_USER;
 
     return `
-      <tr class="threat-row hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors" data-id="${escapeHtml(t.id)}">
+      <tr class="threat-row hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors" data-id="${escapeHtml(t.id)}">
         
         <!-- Employee & Timestamp -->
-        <td class="py-2.5 px-4 align-top whitespace-nowrap">
-          <div class="font-medium text-zinc-900 dark:text-white font-mono text-[11px]">${escapeHtml(recipient)}</div>
-          <div class="text-[10.5px] text-zinc-400 mt-0.5">${escapeHtml(formatTimestamp(t.timestamp))}</div>
+        <td class="py-3 px-4 align-middle overflow-hidden">
+          <div class="font-medium text-zinc-900 dark:text-white font-mono text-[11px] truncate" title="${escapeHtml(recipient)}">${escapeHtml(recipient)}</div>
+          <div class="text-[10.5px] text-zinc-400 mt-0.5 whitespace-nowrap">${escapeHtml(formatTimestamp(t.timestamp))}</div>
         </td>
 
         <!-- Sender & Subject -->
-        <td class="py-2.5 px-4 align-top overflow-hidden">
-          <div class="font-medium text-zinc-900 dark:text-white truncate" title="${escapeHtml(t.subject)}">${escapeHtml(t.subject || 'No Subject')}</div>
-          <div class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5" title="${escapeHtml(t.sender)}">${escapeHtml(t.sender || 'Unknown Sender')}</div>
+        <td class="py-3 px-4 align-middle overflow-hidden pr-4">
+          <div class="font-medium text-zinc-900 dark:text-white truncate text-[12px]" title="${escapeHtml(t.subject)}">${escapeHtml(t.subject || 'No Subject')}</div>
+          <div class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 font-mono text-[10.5px]" title="${escapeHtml(t.sender)}">${escapeHtml(t.sender || 'Unknown Sender')}</div>
         </td>
 
         <!-- Classification Badge -->
-        <td class="py-2.5 px-4 align-top whitespace-nowrap">
-          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
-            <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
-            ${escapeHtml(t.threat_type || 'Unclassified')}
+        <td class="py-3 px-4 align-middle overflow-hidden">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 max-w-full">
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}"></span>
+            <span class="truncate">${escapeHtml(t.threat_type || 'Unclassified')}</span>
           </span>
         </td>
 
         <!-- Score -->
-        <td class="py-2.5 px-4 align-top whitespace-nowrap font-mono text-[11.5px]">
+        <td class="py-3 px-4 align-middle whitespace-nowrap font-mono text-[12px]">
           <span class="${isHigh ? 'text-red-600 dark:text-red-400 font-bold' : isModerate ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-zinc-500'}">
             ${t.risk_score}/100
           </span>
         </td>
 
         <!-- Status -->
-        <td class="py-2.5 px-4 align-top whitespace-nowrap">
+        <td class="py-3 px-4 align-middle whitespace-nowrap text-[11.5px]">
           ${statusText}
         </td>
 
         <!-- Actions -->
-        <td class="py-2.5 px-4 align-top text-right whitespace-nowrap space-x-1">
-          ${isHigh ? `
-            <button class="btn-restore px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 transition-all cursor-pointer" data-id="${escapeHtml(t.id)}" title="Restore to Inbox">
-              Restore
+        <td class="py-3 px-4 align-middle text-right whitespace-nowrap">
+          <div class="inline-flex items-center justify-end gap-1.5">
+            ${isHigh ? `
+              <button class="btn-restore px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 transition-all cursor-pointer" data-id="${escapeHtml(t.id)}" title="Restore to Inbox">
+                Restore
+              </button>
+            ` : ''}
+            <button class="btn-purge p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer" data-id="${escapeHtml(t.id)}" title="Purge Record">
+              <i data-lucide="trash" class="w-3.5 h-3.5"></i>
             </button>
-          ` : ''}
-          <button class="btn-purge p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer" data-id="${escapeHtml(t.id)}" title="Purge Record">
-            <i data-lucide="trash" class="w-3.5 h-3.5"></i>
-          </button>
-          <button class="btn-toggle-drawer p-1 rounded text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer" data-id="${escapeHtml(t.id)}" title="Toggle Heuristic Details">
-            <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
-          </button>
+            <button class="btn-toggle-drawer p-1 rounded text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer" data-id="${escapeHtml(t.id)}" title="Toggle Heuristic Details">
+              <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
         </td>
 
       </tr>
 
       <!-- Accordion Drawer (Expanded View) -->
-      <tr class="bg-zinc-50/60 dark:bg-zinc-900/60 ${isExpanded ? '' : 'hidden'}" id="drawer-${escapeHtml(t.id)}">
-        <td colspan="6" class="p-3.5 border-b border-zinc-200 dark:border-zinc-800 text-xs">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-white dark:bg-zinc-800/90 p-3.5 rounded border border-zinc-200 dark:border-zinc-700 shadow-sm">
+      <tr class="bg-zinc-50/70 dark:bg-zinc-900/70 ${isExpanded ? '' : 'hidden'}" id="drawer-${escapeHtml(t.id)}">
+        <td colspan="6" class="p-4 border-b border-zinc-200 dark:border-zinc-800 text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-zinc-800/95 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm">
             
             <!-- Left Column: Explanation & Snippet -->
-            <div class="space-y-2.5">
+            <div class="space-y-3">
               <div>
-                <span class="font-semibold text-zinc-400 uppercase tracking-wider text-[10px]">SME Analysis</span>
-                <p class="text-zinc-800 dark:text-zinc-200 mt-0.5 leading-relaxed text-[11.5px]">${escapeHtml(t.explanation || 'No detailed analysis.')}</p>
+                <span class="font-semibold text-zinc-400 uppercase tracking-wider text-[10px]">SME Security Analysis</span>
+                <p class="text-zinc-800 dark:text-zinc-200 mt-1 leading-relaxed text-[11.5px]">${escapeHtml(t.explanation || 'No detailed analysis.')}</p>
               </div>
               <div>
-                <span class="font-semibold text-zinc-400 uppercase tracking-wider text-[10px]">Email Snippet</span>
-                <p class="text-zinc-600 dark:text-zinc-400 font-mono text-[11px] bg-zinc-50 dark:bg-zinc-900 p-2 rounded border border-zinc-200 dark:border-zinc-800 mt-0.5 break-words">
+                <span class="font-semibold text-zinc-400 uppercase tracking-wider text-[10px]">Scanned Email Content</span>
+                <p class="text-zinc-600 dark:text-zinc-400 font-mono text-[11px] bg-zinc-50 dark:bg-zinc-900 p-2.5 rounded border border-zinc-200 dark:border-zinc-800 mt-1 break-words leading-relaxed">
                   ${escapeHtml(t.snippet || 'No snippet text available.')}
                 </p>
               </div>
             </div>
 
             <!-- Right Column: Triggered Heuristic Rules -->
-            <div>
-              <span class="font-semibold text-zinc-400 uppercase tracking-wider text-[10px]">Triggered Security Signals</span>
-              <div class="mt-1 p-2.5 rounded bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[11.5px]">
-                ${matchedRulesHtml}
+            <div class="flex flex-col justify-between">
+              <div>
+                <span class="font-semibold text-zinc-400 uppercase tracking-wider text-[10px]">Triggered Security Signals</span>
+                <div class="mt-1 p-2.5 rounded bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[11.5px]">
+                  ${matchedRulesHtml}
+                </div>
               </div>
-              <div class="mt-2.5 flex items-center justify-between text-[10.5px] text-zinc-400 font-mono">
-                <span>ID: ${escapeHtml(t.id)}</span>
+              <div class="mt-3 flex items-center justify-between text-[10.5px] text-zinc-400 font-mono pt-2 border-t border-zinc-100 dark:border-zinc-700/50">
+                <span>Incident ID: ${escapeHtml(t.id)}</span>
                 <span>Engine: Heuristic v0.1.0</span>
               </div>
             </div>
@@ -911,7 +915,14 @@
     if (DOM.btnLogout) DOM.btnLogout.addEventListener('click', handleLogout);
     if (DOM.btnAuthThemeToggle) DOM.btnAuthThemeToggle.addEventListener('click', toggleTheme);
     if (DOM.themeToggleBtn) DOM.themeToggleBtn.addEventListener('click', toggleTheme);
-    if (DOM.manualRefreshBtn) DOM.manualRefreshBtn.addEventListener('click', fetchLiveThreats);
+    if (DOM.manualRefreshBtn) {
+      DOM.manualRefreshBtn.addEventListener('click', async () => {
+        state.deletedTombstones.clear();
+        sessionStorage.removeItem('mailflow_dashboard_tombstones');
+        await fetchLiveThreats();
+        showToast('Refreshed security telemetry from endpoints', 'info');
+      });
+    }
     if (DOM.seedThreatsBtn) DOM.seedThreatsBtn.addEventListener('click', seedDemoThreats);
     if (DOM.clearThreatsBtn) DOM.clearThreatsBtn.addEventListener('click', clearThreats);
     if (DOM.exportLogBtn) DOM.exportLogBtn.addEventListener('click', exportThreatLog);

@@ -177,31 +177,36 @@
 
         let changed = false;
 
-        // 1. Reconcile Quarantined Threats:
-        // If an item in local quarantinedThreats is NO LONGER in backendHighIds (e.g. restored or deleted from dashboard)
+        // Re-forward any active local threats that backend might have lost on restart
         for (const [id, threat] of quarantinedThreats.entries()) {
-          if (!backendHighIds.has(id)) {
-            // Threat was restored or deleted on dashboard -> unhide in Gmail & track restored!
-            restoredThreatIds.add(id);
-            let row = threat.row;
-            if (!row) {
-              row = document.querySelector(`tr[data-mailflow-id="${id}"], .zA[data-mailflow-id="${id}"]`);
-            }
-            if (row) {
-              row.classList.remove('mailflow-quarantine-slide');
-              row.dataset.mailflowRestored = 'true';
-              delete row.dataset.mfRisk;
-              row.style.display = '';
-              const scanBtn = row.querySelector('.mailflow-scan-btn');
-              if (scanBtn) {
-                scanBtn.className = 'mailflow-scan-btn';
-                scanBtn.innerHTML = ICONS.shieldRow;
-                const actionItem = scanBtn.closest('.mailflow-row-action-item');
-                if (actionItem) actionItem.setAttribute('data-tooltip', 'MailFlow Scan');
-              }
-            }
-            quarantinedThreats.delete(id);
-            changed = true;
+          if (!restoredThreatIds.has(id) && !backendHighIds.has(id)) {
+            fetch(`${BACKEND_URL}/api/scan`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({
+                sender: threat.sender,
+                subject: threat.subject,
+                snippet: threat.snippet,
+                recipient: 'nithin@mailflow.com',
+                auto_forward_admin: Boolean(currentSettings.autoForwardAdmin)
+              })
+            }).catch(() => {});
+          }
+        }
+
+        for (const [id, threat] of moderateThreats.entries()) {
+          if (!restoredThreatIds.has(id) && !backendModIds.has(id)) {
+            fetch(`${BACKEND_URL}/api/scan`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({
+                sender: threat.sender,
+                subject: threat.subject,
+                snippet: threat.snippet,
+                recipient: 'nithin@mailflow.com',
+                auto_forward_admin: Boolean(currentSettings.autoForwardAdmin)
+              })
+            }).catch(() => {});
           }
         }
 
@@ -219,15 +224,7 @@
           }
         });
 
-        // 2. Reconcile Moderate Threats:
-        for (const [id] of moderateThreats.entries()) {
-          if (!backendModIds.has(id)) {
-            restoredThreatIds.add(id);
-            moderateThreats.delete(id);
-            changed = true;
-          }
-        }
-
+        // Add any missing backend moderate risk threats
         backendModList.forEach(t => {
           if (!moderateThreats.has(t.id) && !restoredThreatIds.has(t.id)) {
             moderateThreats.set(t.id, t);
