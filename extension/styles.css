@@ -217,6 +217,278 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   border-radius: 16px !important;
 }
 
+.mailflow-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e4eb;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.mailflow-view-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mailflow-view-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f1f1f;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.2px;
+}
+
+.mailflow-view-badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background-color: #d3e3fd;
+  color: #041e49;
+}
+
+.mailflow-view-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mailflow-btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 18px;
+  border: 1px solid #dadce0;
+  background-color: #ffffff;
+  color: #1f1f1f;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.mailflow-btn-action:hover {
+  background-color: #f1f3f4;
+  border-color: #c4c7c5;
+}
+
+/* MailFlow Dashboard Content Area */
+.mailflow-view-content {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 32px;
+  gap: 24px;
+  flex: 1;
+}
+
+.mailflow-threat-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mailflow-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e4eb;
+}
+
+.mailflow-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mailflow-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f1f1f;
+  letter-spacing: -0.1px;
+}
+
+.mailflow-section-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.mailflow-section-count.red {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.mailflow-section-count.yellow {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.mailflow-threat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mailflow-threat-card {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px;
+  background-color: #ffffff;
+  border: 1px solid #e0e4eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  gap: 8px;
+}
+
+.mailflow-threat-card.high {
+  border-left: 4px solid #dc2626;
+}
+
+.mailflow-threat-card.moderate {
+  border-left: 4px solid #f59e0b;
+}
+
+.mailflow-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mailflow-card-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mailflow-card-threat-badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.mailflow-card-threat-badge.high {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.mailflow-card-threat-badge.moderate {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.mailflow-card-score-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.mailflow-card-sender {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.mailflow-card-subject {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.mailflow-card-explanation {
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.45;
+  background-color: #f9fafb;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #f3f4f6;
+}
+
+.mailflow-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.mailflow-btn-restore {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mailflow-btn-restore:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  color: #111827;
+}
+
+/* Empty State / Triage Container */
+.mailflow-view-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 380px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.mailflow-empty-shield-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #e8f0fe;
+  color: #0b57d0;
+  margin-bottom: 20px;
+}
+
+.mailflow-empty-shield-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.mailflow-empty-heading {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f1f1f;
+  margin-bottom: 8px;
+}
+
+.mailflow-empty-subtext {
+  font-size: 14px;
+  color: #5e5e5e;
+  max-width: 440px;
+  line-height: 1.5;
+}
+
 /* Slide-to-Right Quarantine Animation for High Risk Emails */
 .mailflow-quarantine-slide {
   transform: translateX(110%) !important;

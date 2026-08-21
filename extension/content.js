@@ -307,6 +307,183 @@
            document.body;
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, function(m) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
+    });
+  }
+
+  async function syncThreatsFromBackend() {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/threats`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.high_risk) {
+          data.high_risk.forEach(t => {
+            if (!quarantinedThreats.has(t.id)) {
+              quarantinedThreats.set(t.id, t);
+            }
+          });
+        }
+        if (data.moderate_risk) {
+          data.moderate_risk.forEach(t => {
+            if (!moderateThreats.has(t.id)) {
+              moderateThreats.set(t.id, t);
+            }
+          });
+        }
+        updateSidebarBadge();
+        renderMailFlowDashboard();
+      }
+    } catch (e) {
+      // Backend offline fallback
+    }
+  }
+
+  function renderMailFlowDashboard() {
+    const placeholder = document.getElementById('mailflow-placeholder-view');
+    if (!placeholder) return;
+
+    const totalQuarantined = quarantinedThreats.size;
+    const totalModerate = moderateThreats.size;
+    const hasItems = totalQuarantined > 0 || totalModerate > 0;
+
+    let contentHtml = '';
+
+    if (!hasItems) {
+      contentHtml = `
+        <div class="mailflow-view-body">
+          <div class="mailflow-empty-shield-icon">
+            ${ICONS.shieldHeader}
+          </div>
+          <h2 class="mailflow-empty-heading">No suspected emails</h2>
+          <p class="mailflow-empty-subtext">
+            MailFlow SME Shield is actively monitoring your mailbox. Threats flagged by real-time heuristics will appear here for review.
+          </p>
+        </div>
+      `;
+    } else {
+      let quarantinedHtml = '';
+      if (totalQuarantined > 0) {
+        let cards = '';
+        quarantinedThreats.forEach((threat, id) => {
+          cards += `
+            <div class="mailflow-threat-card high" data-threat-id="${id}">
+              <div class="mailflow-card-top">
+                <div class="mailflow-card-badge-group">
+                  <span class="mailflow-card-threat-badge high">🚨 ${threat.threat_type || 'High Risk Threat'}</span>
+                  <span class="mailflow-card-score-pill">Risk: ${threat.risk_score}/100</span>
+                </div>
+              </div>
+              <div class="mailflow-card-sender">From: ${escapeHtml(threat.sender)}</div>
+              <div class="mailflow-card-subject">Subject: ${escapeHtml(threat.subject)}</div>
+              <div class="mailflow-card-explanation">${escapeHtml(threat.explanation)}</div>
+              <div class="mailflow-card-actions">
+                <button class="mailflow-btn-restore" data-restore-id="${id}">
+                  ${ICONS.restore}
+                  <span>Restore to Inbox</span>
+                </button>
+              </div>
+            </div>
+          `;
+        });
+
+        quarantinedHtml = `
+          <div class="mailflow-threat-section">
+            <div class="mailflow-section-header">
+              <div class="mailflow-section-title-wrap">
+                <span class="mailflow-section-title">🚨 Quarantined Threats</span>
+                <span class="mailflow-section-count red">${totalQuarantined}</span>
+              </div>
+            </div>
+            <div class="mailflow-threat-list">
+              ${cards}
+            </div>
+          </div>
+        `;
+      }
+
+      let moderateHtml = '';
+      if (totalModerate > 0) {
+        let cards = '';
+        moderateThreats.forEach((threat, id) => {
+          cards += `
+            <div class="mailflow-threat-card moderate" data-threat-id="${id}">
+              <div class="mailflow-card-top">
+                <div class="mailflow-card-badge-group">
+                  <span class="mailflow-card-threat-badge moderate">⚠️ ${threat.threat_type || 'Moderate Warning'}</span>
+                  <span class="mailflow-card-score-pill">Risk: ${threat.risk_score}/100</span>
+                </div>
+              </div>
+              <div class="mailflow-card-sender">From: ${escapeHtml(threat.sender)}</div>
+              <div class="mailflow-card-subject">Subject: ${escapeHtml(threat.subject)}</div>
+              <div class="mailflow-card-explanation">${escapeHtml(threat.explanation)}</div>
+            </div>
+          `;
+        });
+
+        moderateHtml = `
+          <div class="mailflow-threat-section">
+            <div class="mailflow-section-header">
+              <div class="mailflow-section-title-wrap">
+                <span class="mailflow-section-title">⚠️ Watchlist & Moderate Risks</span>
+                <span class="mailflow-section-count yellow">${totalModerate}</span>
+              </div>
+            </div>
+            <div class="mailflow-threat-list">
+              ${cards}
+            </div>
+          </div>
+        `;
+      }
+
+      contentHtml = `
+        <div class="mailflow-view-content">
+          ${quarantinedHtml}
+          ${moderateHtml}
+        </div>
+      `;
+    }
+
+    placeholder.innerHTML = `
+      <div class="mailflow-view-header">
+        <div class="mailflow-view-title-group">
+          <h1 class="mailflow-view-title">
+            ${ICONS.shieldHeader}
+            MailFlow
+          </h1>
+          <span class="mailflow-view-badge">Threat Center</span>
+        </div>
+        <div class="mailflow-view-actions">
+          <button id="mailflow-btn-refresh-view" class="mailflow-btn-action" title="Refresh Threat List">
+            ${ICONS.refresh}
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+      ${contentHtml}
+    `;
+
+    const refreshBtn = placeholder.querySelector('#mailflow-btn-refresh-view');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async () => {
+        await syncThreatsFromBackend();
+        showToast('MailFlow threat registry refreshed', 'info');
+      });
+    }
+
+    placeholder.querySelectorAll('.mailflow-btn-restore').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const threatId = btn.dataset.restoreId;
+        if (threatId) {
+          restoreThreatToInbox(threatId);
+        }
+      });
+    });
+  }
+
   function ensureViewMounted() {
     const mainContainer = getMainContainer();
     if (!mainContainer) return;
@@ -316,6 +493,7 @@
       placeholder = document.createElement('div');
       placeholder.id = 'mailflow-placeholder-view';
       mainContainer.appendChild(placeholder);
+      renderMailFlowDashboard();
     } else if (placeholder.parentElement !== mainContainer) {
       mainContainer.appendChild(placeholder);
     }
@@ -337,6 +515,7 @@
       });
 
       setSearchBarText('in:MailFlow');
+      renderMailFlowDashboard();
     } else {
       document.body.classList.remove('mailflow-active-mode');
       if (navItem) navItem.classList.remove('active');
