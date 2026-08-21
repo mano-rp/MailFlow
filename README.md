@@ -8,16 +8,17 @@
 
 ```
 MailFlow/
+├── start_backend.sh          # One-click start script with clean Ctrl+C shutdown
 ├── backend/                  # Minimal FastAPI Health-Check & Ping Server
 │   ├── main.py               # REST endpoints (/api/ping, /api/scan-ping)
 │   └── requirements.txt      # fastapi, uvicorn, pydantic
 ├── extension/                # Chrome Extension Manifest V3
 │   ├── manifest.json         # Extension configuration & content script rules
-│   ├── popup.html            # Settings & Health Check UI Dropdown
-│   ├── popup.css             # Scholarcy & M3 inspired design styling
-│   ├── popup.js              # Popup controller with real-time ping benchmark
-│   ├── content.js            # Native Gmail DOM injections & MutationObserver
-│   ├── styles.css            # Native Material 3 Gmail UI injection stylesheet
+│   ├── popup.html            # Minimalist Settings & Live Connection Status UI
+│   ├── popup.css             # Clean, modern styling & glowing status dot
+│   ├── popup.js              # Real-time backend connectivity heartbeat & storage
+│   ├── content.js            # Native DOM injections & backend dependency gate
+│   ├── styles.css            # Gmail Material 3 design tokens & offline states
 │   └── icons/                # Extension badge icons (16x16, 48x48, 128x128)
 └── .gitignore
 ```
@@ -26,19 +27,19 @@ MailFlow/
 
 ## Quickstart Guide
 
-### 1. Run the Local Backend Server
+### 1. Start the Backend Server
 
-In a terminal, start the FastAPI ping server:
+Start the local FastAPI server with the provided script (handles clean shutdown on `Ctrl+C`):
 
 ```bash
-cd backend
-python3 -m pip install -r requirements.txt
-python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+./start_backend.sh
 ```
 
-Verify backend health:
-- `GET http://localhost:8000/api/ping` -> `{"status": "online", "version": "0.1.0", ...}`
-- `POST http://localhost:8000/api/scan-ping` -> `{"status": "received", "mock_verdict": "safe", "latency_ms": 12}`
+- Server URL: `http://127.0.0.1:8000`
+- Health check: `GET http://localhost:8000/api/ping`
+- Scan test: `POST http://localhost:8000/api/scan-ping`
+
+> **Note:** The extension requires the backend to be running. If the backend is stopped, the extension gracefully pauses scanning and indicates offline status across all UI components.
 
 ---
 
@@ -52,18 +53,15 @@ Verify backend health:
 
 ---
 
-### 3. Test Native Gmail DOM Injections
+### 3. Native Gmail Injections & Features
 
-1. Navigate to [Gmail](https://mail.google.com/).
-2. **Sidebar Navigation Tab:**
-   - Notice the injected `🛡️ MailFlow` navigation item in the left sidebar under Inbox / Drafts.
-   - Click it to swap into the **MailFlow Quarantine & Triage Hub**.
-   - Click Inbox or any native folder to restore your inbox view.
-3. **Per-Row Scan Action Button:**
+1. **Popup Settings & Live Connectivity Indicator:**
+   - Click the extension icon in Chrome's toolbar.
+   - Shows a glowing `● Connected` status card with real-time latency when the backend is active, or `○ Disconnected` if offline.
+2. **Left Sidebar `🛡️ MailFlow` Tab:**
+   - Injected under standard Gmail folders (Inbox, Drafts).
+   - Shows `0` or `Offline` badge depending on backend status.
+   - Clicking opens the **MailFlow Quarantine & Triage Hub**.
+3. **Per-Row Inline `[ 🛡️ Scan ]` Button:**
    - Hover over any email row (`tr.zA`).
-   - Notice the injected `[ 🛡️ Scan ]` button next to Archive / Delete / Mark as read.
-   - Click **Scan** to trigger a real-time health handshake (`POST /api/scan-ping`), view the spinning progress indicator, and inspect the native Gmail floating toast notification.
-4. **Popup Settings & Live Ping Tester:**
-   - Click the extension icon in Chrome's toolbar to open the **MailFlow Shield** popup.
-   - Click **Test Backend Ping** to run a live latency check against `localhost:8000`.
-   - Toggle settings (e.g. *Show inline action buttons*) to observe real-time UI updates without page reloads.
+   - Clicking **Scan** triggers a real-time safety scan (`POST /api/scan-ping`) and displays a native Gmail floating toast.
