@@ -1,15 +1,12 @@
-// MailFlow Shield - Settings Popup Controller
+// MailFlow Shield - Minimalist Settings Popup Controller
 
 const API_BASE_URL = 'http://localhost:8000';
 
 const DOM = {
   html: document.documentElement,
-  statusCard: document.getElementById('status-card'),
-  statusTitle: document.getElementById('status-title'),
-  statusSubtitle: document.getElementById('status-subtitle'),
-  statusLatency: document.getElementById('status-latency'),
+  statusDot: document.getElementById('status-dot'),
+  statusText: document.getElementById('status-text'),
   btnCheckConnection: document.getElementById('btn-check-connection'),
-  offlineBanner: document.getElementById('offline-banner'),
   toggleInlineScan: document.getElementById('toggle-inline-scan'),
   toggleAutoShield: document.getElementById('toggle-auto-shield'),
   themeBtnLight: document.getElementById('theme-btn-light'),
@@ -71,18 +68,14 @@ function setTheme(theme) {
   storage.set({ theme });
 }
 
-// Backend Health Verification
+// Backend Health Verification (End-User Status)
 async function checkBackendHealth() {
-  const start = performance.now();
-
-  DOM.statusCard.className = 'status-card checking';
-  DOM.statusTitle.textContent = 'Checking connection...';
-  DOM.statusSubtitle.textContent = 'http://localhost:8000';
-  DOM.statusLatency.textContent = '...';
+  DOM.statusDot.className = 'status-dot checking';
+  DOM.statusText.textContent = 'Checking status...';
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2500);
+    const timeout = setTimeout(() => controller.abort(), 2000);
 
     const res = await fetch(`${API_BASE_URL}/api/ping`, {
       method: 'GET',
@@ -91,24 +84,15 @@ async function checkBackendHealth() {
     });
     clearTimeout(timeout);
 
-    const elapsed = Math.round(performance.now() - start);
-
     if (res.ok) {
-      const data = await res.json();
-      DOM.statusCard.className = 'status-card connected';
-      DOM.statusTitle.textContent = '● Connected';
-      DOM.statusSubtitle.textContent = `Backend online (v${data.version || '0.1.0'})`;
-      DOM.statusLatency.textContent = `${elapsed} ms`;
-      DOM.offlineBanner.classList.add('hidden');
+      DOM.statusDot.className = 'status-dot protected';
+      DOM.statusText.textContent = 'Protected';
     } else {
       throw new Error(`HTTP ${res.status}`);
     }
   } catch (err) {
-    DOM.statusCard.className = 'status-card disconnected';
-    DOM.statusTitle.textContent = '○ Disconnected';
-    DOM.statusSubtitle.textContent = 'Backend offline (:8000)';
-    DOM.statusLatency.textContent = '-- ms';
-    DOM.offlineBanner.classList.remove('hidden');
+    DOM.statusDot.className = 'status-dot paused';
+    DOM.statusText.textContent = 'Protection Paused';
   }
 }
 

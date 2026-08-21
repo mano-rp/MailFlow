@@ -18,17 +18,14 @@
           </svg>
         </div>
         <div class="pop-brand-text">
-          <div class="pop-title-row">
-            <span class="pop-title">MailFlow</span>
-            <span class="pop-badge">Shield</span>
-          </div>
+          <span class="pop-title">MailFlow</span>
           <span class="pop-subtitle">SME Email Security</span>
         </div>
       </div>
       
-      <!-- Theme Switcher -->
+      <!-- Icon-Only Theme Switcher -->
       <div class="theme-toggle-group" role="radiogroup" aria-label="Appearance Theme">
-        <button id="theme-btn-light" class="theme-btn active" title="Light Mode (Gmail M3)" aria-checked="true" role="radio">
+        <button id="theme-btn-light" class="theme-btn active" title="Light Mode" aria-label="Light Mode" aria-checked="true" role="radio">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="5"/>
             <line x1="12" y1="1" x2="12" y2="3"/>
@@ -40,56 +37,39 @@
             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
           </svg>
-          <span>Light</span>
         </button>
-        <button id="theme-btn-dark" class="theme-btn" title="Dark Mode" aria-checked="false" role="radio">
+        <button id="theme-btn-dark" class="theme-btn" title="Dark Mode" aria-label="Dark Mode" aria-checked="false" role="radio">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
-          <span>Dark</span>
         </button>
       </div>
     </header>
 
-    <!-- Visual Connection Status Banner -->
-    <div id="status-card" class="status-card checking">
-      <div class="status-indicator">
-        <span class="status-dot"></span>
-        <div class="status-text-wrap">
-          <span id="status-title" class="status-title">Checking connection...</span>
-          <span id="status-subtitle" class="status-subtitle">http://localhost:8000</span>
-        </div>
+    <!-- Subtle End-User Status Bar -->
+    <div class="status-bar">
+      <div class="status-left">
+        <span id="status-dot" class="status-dot checking"></span>
+        <span id="status-text" class="status-text">Checking status...</span>
       </div>
-      <div class="status-meta-group">
-        <span id="status-latency" class="status-latency">-- ms</span>
-        <button id="btn-check-connection" class="btn-refresh" title="Re-check Backend Connection">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-          </svg>
-        </button>
-      </div>
+      <button id="btn-check-connection" class="btn-refresh" title="Check Connection" aria-label="Check Connection">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- Offline Warning Notice -->
-    <div id="offline-banner" class="offline-banner hidden">
-      <svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      <div class="offline-text">
-        <strong>Backend Offline:</strong> Email threat protection is paused. Start the backend in terminal: <code>./start_backend.sh</code>
-      </div>
-    </div>
+    <!-- Hairline Divider -->
+    <hr class="section-divider">
 
-    <!-- Protection Features -->
-    <div class="settings-card">
-      <span class="section-title">Protection Settings</span>
+    <!-- Settings Section -->
+    <section class="settings-section">
+      <div class="section-label">Preferences</div>
 
       <label class="setting-row" for="toggle-inline-scan">
         <div class="setting-info">
-          <span class="setting-name">Inline Row Scan Button</span>
-          <span class="setting-desc">Inject native 🛡️ Scan buttons in Gmail email rows</span>
+          <span class="setting-name">Inline Row Scan</span>
+          <span class="setting-desc">Show quick scan actions in Gmail email rows</span>
         </div>
         <div class="m3-switch">
           <input type="checkbox" id="toggle-inline-scan" checked>
@@ -99,20 +79,22 @@
 
       <label class="setting-row" for="toggle-auto-shield">
         <div class="setting-info">
-          <span class="setting-name">Zero-Trust Triage Hub</span>
-          <span class="setting-desc">Enable left sidebar tab & quarantine triage hub</span>
+          <span class="setting-name">Suspected Emails Hub</span>
+          <span class="setting-desc">Enable left sidebar navigation & quarantine view</span>
         </div>
         <div class="m3-switch">
           <input type="checkbox" id="toggle-auto-shield" checked>
           <span class="m3-track"><span class="m3-thumb"></span></span>
         </div>
       </label>
-    </div>
+    </section>
 
-    <!-- Footer -->
+    <!-- Hairline Divider -->
+    <hr class="section-divider">
+
+    <!-- Minimal Footer -->
     <footer class="pop-footer">
-      <span class="fleet-info">Backend Fleet: <span class="fleet-url">127.0.0.1:8000</span></span>
-      <span class="version-tag">v0.1.0</span>
+      <span class="version-text">MailFlow v0.1.0</span>
     </footer>
   </div>
 
