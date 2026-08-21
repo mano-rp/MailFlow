@@ -4,13 +4,23 @@ FastAPI health-check, multi-step heuristic scanning engine, and threat registry.
 """
 
 from datetime import datetime, timezone
+import os
+import sys
 import time
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from heuristics import ScanPayload, ThreatRecord, run_pipeline
+# Ensure backend directory is in sys.path for direct and modular execution
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
+try:
+    from heuristics import ScanPayload, ThreatRecord, run_pipeline
+except ImportError:
+    from backend.heuristics import ScanPayload, ThreatRecord, run_pipeline
 
 app = FastAPI(
     title="MailFlow Shield API",
