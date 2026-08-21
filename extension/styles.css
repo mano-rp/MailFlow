@@ -541,6 +541,8 @@ tr.zA[data-mf-risk="moderate"], .zA[data-mf-risk="moderate"] {
   box-sizing: border-box !important;
   vertical-align: middle !important;
   flex-shrink: 0 !important;
+  pointer-events: auto !important;
+  z-index: 2 !important;
 }
 
 .mailflow-scan-btn {
@@ -561,6 +563,16 @@ tr.zA[data-mf-risk="moderate"], .zA[data-mf-risk="moderate"] {
   outline: none !important;
   user-select: none !important;
   box-sizing: border-box !important;
+  pointer-events: auto !important;
+}
+
+.mailflow-scan-btn * {
+  pointer-events: none !important;
+}
+
+.mailflow-row-scanning {
+  background-color: rgba(11, 87, 208, 0.05) !important;
+  transition: background-color 0.2s ease !important;
 }
 
 .mailflow-scan-btn:hover {

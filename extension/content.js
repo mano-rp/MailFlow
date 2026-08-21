@@ -512,7 +512,8 @@
       if (scanBtn) {
         scanBtn.className = 'mailflow-scan-btn';
         scanBtn.innerHTML = ICONS.shieldRow;
-        scanBtn.setAttribute('title', 'MailFlow Scan');
+        const actionItem = scanBtn.closest('.mailflow-row-action-item');
+        if (actionItem) actionItem.setAttribute('data-tooltip', 'MailFlow Scan');
       }
 
       setTimeout(() => {
@@ -596,41 +597,57 @@
    */
 
   function extractRowMetadata(row) {
-    let sender = 'Unknown Sender';
-    const senderEl = row.querySelector('.yP, .zF, span[email], .bA4 span, .yW span, span[name]');
+    let sender = '';
+    const senderEl = row.querySelector('.yP, .zF, span[email], .bA4 span, .yW span, span[name], .yX div, .yW');
     if (senderEl) {
       sender = senderEl.getAttribute('email') || 
                senderEl.getAttribute('name') || 
                senderEl.innerText.trim() || 
-               'Unknown Sender';
+               '';
     }
 
-    let subject = 'No Subject';
+    let subject = '';
     const subjectEl = row.querySelector('.bog, .bqe, span.bqe, .y6 span');
     if (subjectEl) {
-      subject = subjectEl.innerText.trim() || 'No Subject';
+      subject = subjectEl.innerText.trim() || '';
     }
 
     let snippet = '';
     const snippetEl = row.querySelector('.y2, span.y2, .Zt');
     if (snippetEl) {
-      snippet = snippetEl.innerText.trim();
+      snippet = snippetEl.innerText.trim() || '';
     }
+
+    if (!sender || !subject) {
+      const rawText = row.innerText || row.textContent || '';
+      const lines = rawText.split('\n').map(s => s.trim()).filter(Boolean);
+      if (!sender && lines.length > 0) sender = lines[0];
+      if (!subject && lines.length > 1) subject = lines[1];
+      if (!snippet && lines.length > 2) snippet = lines.slice(2).join(' ');
+    }
+
+    sender = sender || 'Unknown Sender';
+    subject = subject || 'No Subject';
 
     return { sender, subject, snippet };
   }
 
   async function handleScanClick(row, btn, e) {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
 
-    if (btn.classList.contains('scanning')) return;
+    if (!btn || btn.classList.contains('scanning')) return;
 
-    const { sender, subject, snippet } = extractRowMetadata(row);
-
-    // Enter asynchronous scanning state with loading spinner
+    // Instant visual feedback on button and row
     btn.className = 'mailflow-scan-btn scanning';
     btn.innerHTML = `<div class="mailflow-scan-spinner"></div>`;
+    row.classList.add('mailflow-row-scanning');
+
+    const { sender, subject, snippet } = extractRowMetadata(row);
+    console.log('[MailFlow] Initiating scan for:', { sender, subject, snippet });
 
     const minLoadingTime = 900;
     const startTime = performance.now();
@@ -650,13 +667,18 @@
         await new Promise(r => setTimeout(r, minLoadingTime - elapsed));
       }
 
+      row.classList.remove('mailflow-row-scanning');
+
       if (response.ok) {
         const data = await response.json();
+        console.log('[MailFlow] Scan verdict received:', data);
         applyScanVerdict(row, btn, data);
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (err) {
+      console.error('[MailFlow] Scan error:', err);
+      row.classList.remove('mailflow-row-scanning');
       btn.className = 'mailflow-scan-btn backend-offline';
       btn.innerHTML = ICONS.shieldRow;
 
@@ -704,16 +726,17 @@
     const { id, tier, risk_score, threat_type, explanation } = data;
 
     row.dataset.mailflowId = id;
+    const actionItem = btn.closest('.mailflow-row-action-item');
 
     if (tier === 'low') {
       btn.className = 'mailflow-scan-btn verdict-low';
       btn.innerHTML = ICONS.check;
-      btn.setAttribute('title', `MailFlow: Clean (${risk_score}/100)`);
+      if (actionItem) actionItem.setAttribute('data-tooltip', `MailFlow: Clean (${risk_score}/100)`);
       showToast(`🟢 MailFlow: Verified Safe (${risk_score}/100) — No threat vectors detected`, 'success');
     } else if (tier === 'moderate') {
       btn.className = 'mailflow-scan-btn verdict-moderate';
       btn.innerHTML = ICONS.warning;
-      btn.setAttribute('title', `MailFlow Warning: ${threat_type} (${risk_score}/100)`);
+      if (actionItem) actionItem.setAttribute('data-tooltip', `MailFlow Warning: ${threat_type} (${risk_score}/100)`);
       showToast(`🟡 MailFlow Caution: ${threat_type} (Score: ${risk_score}/100)`, 'warning');
       
       row.dataset.mfRisk = 'moderate';
@@ -731,7 +754,7 @@
     } else if (tier === 'high') {
       btn.className = 'mailflow-scan-btn verdict-high';
       btn.innerHTML = ICONS.alert;
-      btn.setAttribute('title', `MailFlow Threat: ${threat_type} (${risk_score}/100)`);
+      if (actionItem) actionItem.setAttribute('data-tooltip', `MailFlow Threat: ${threat_type} (${risk_score}/100)`);
       showToast(`🔴 Threat Quarantined: ${threat_type} (${risk_score}/100)`, 'alert');
       
       row.dataset.mfRisk = 'high';
@@ -750,23 +773,34 @@
     const actionItem = document.createElement('li');
     actionItem.className = 'mailflow-row-action-item bqX';
     actionItem.setAttribute('role', 'button');
-    actionItem.setAttribute('title', 'MailFlow Scan');
     actionItem.setAttribute('aria-label', 'MailFlow Scan');
     actionItem.setAttribute('data-tooltip', 'MailFlow Scan');
+    actionItem.setAttribute('data-tooltip-delay', '300');
+    // Notice: Removed title attribute to prevent duplicate browser userhint
 
     if (!currentSettings.showInlineRows) {
       actionItem.style.display = 'none';
     }
 
-    const scanBtn = document.createElement('button');
-    scanBtn.type = 'button';
+    const scanBtn = document.createElement('div');
     scanBtn.className = 'mailflow-scan-btn';
-    scanBtn.setAttribute('aria-label', 'MailFlow Scan');
-    scanBtn.setAttribute('title', 'MailFlow Scan');
+    scanBtn.setAttribute('aria-hidden', 'true');
     scanBtn.innerHTML = ICONS.shieldRow;
 
-    scanBtn.addEventListener('click', (e) => handleScanClick(row, scanBtn, e));
     actionItem.appendChild(scanBtn);
+
+    const onTrigger = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      handleScanClick(row, scanBtn, e);
+    };
+
+    actionItem.addEventListener('click', onTrigger, true);
+    actionItem.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }, true);
 
     return actionItem;
   }
@@ -801,6 +835,7 @@
   }
 
   function setupHoverDelegation() {
+    // 1. Mouseover listener to ensure toolbar has the scan button
     document.addEventListener('mouseover', (e) => {
       const row = e.target.closest('tr.zA, .zA');
       if (row) {
@@ -814,6 +849,34 @@
         ensureRowHasScanButton(row);
       }
     }, { capture: true, passive: true });
+
+    // 2. Global capture-phase click delegator for MailFlow scan button
+    document.addEventListener('click', (e) => {
+      const scanItem = e.target.closest('.mailflow-row-action-item, .mailflow-scan-btn');
+      if (scanItem) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
+        const row = scanItem.closest('tr.zA, .zA');
+        const btn = scanItem.classList.contains('mailflow-scan-btn') 
+          ? scanItem 
+          : scanItem.querySelector('.mailflow-scan-btn');
+
+        if (row && btn) {
+          handleScanClick(row, btn, e);
+        }
+      }
+    }, { capture: true });
+
+    // 3. Prevent mousedown from focusing / selecting row when clicking scan button
+    document.addEventListener('mousedown', (e) => {
+      const scanItem = e.target.closest('.mailflow-row-action-item, .mailflow-scan-btn');
+      if (scanItem) {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+    }, { capture: true });
   }
 
   /**
