@@ -497,6 +497,11 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   pointer-events: none !important;
 }
 
+/* Restored to Inbox Fade-In Animation */
+.mailflow-restored-row {
+  animation: mailflow-restore-fade 0.85s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
 /* Moderate Risk Row Warning Accent */
 tr.zA[data-mf-risk="moderate"], .zA[data-mf-risk="moderate"] {
   border-left: 3px solid #f59e0b !important;
@@ -716,4 +721,10 @@ tr.zA[data-mf-risk="moderate"], .zA[data-mf-risk="moderate"] {
 @keyframes mailflow-toast-slide-up {
   from { opacity: 0; transform: translateY(16px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes mailflow-restore-fade {
+  0% { opacity: 0; transform: translateX(40px); background-color: rgba(16, 185, 129, 0.2); }
+  50% { opacity: 1; transform: translateX(0); background-color: rgba(16, 185, 129, 0.08); }
+  100% { background-color: transparent; }
 }

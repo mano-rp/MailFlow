@@ -484,6 +484,49 @@
     });
   }
 
+  async function restoreThreatToInbox(threatId) {
+    const threat = quarantinedThreats.get(threatId);
+
+    try {
+      await fetch(`${BACKEND_URL}/api/threats/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: threatId })
+      });
+    } catch (e) {
+      // Backend offline fallback
+    }
+
+    let row = threat ? threat.row : null;
+    if (!row) {
+      row = document.querySelector(`tr[data-mailflow-id="${threatId}"], .zA[data-mailflow-id="${threatId}"]`);
+    }
+
+    if (row) {
+      row.classList.remove('mailflow-quarantine-slide');
+      row.classList.add('mailflow-restored-row');
+      delete row.dataset.mfRisk;
+      row.style.display = '';
+
+      const scanBtn = row.querySelector('.mailflow-scan-btn');
+      if (scanBtn) {
+        scanBtn.className = 'mailflow-scan-btn';
+        scanBtn.innerHTML = ICONS.shieldRow;
+        scanBtn.setAttribute('title', 'MailFlow Scan');
+      }
+
+      setTimeout(() => {
+        row.classList.remove('mailflow-restored-row');
+      }, 1000);
+    }
+
+    quarantinedThreats.delete(threatId);
+    updateSidebarBadge();
+    renderMailFlowDashboard();
+
+    showToast('Threat email restored to Inbox', 'success');
+  }
+
   function ensureViewMounted() {
     const mainContainer = getMainContainer();
     if (!mainContainer) return;
