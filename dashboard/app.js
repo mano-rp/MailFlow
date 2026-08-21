@@ -734,7 +734,7 @@
         </td>
 
         <!-- Sender & Subject -->
-        <td class="py-2.5 px-4 align-top max-w-xs md:max-w-sm">
+        <td class="py-2.5 px-4 align-top max-w-sm md:max-w-md lg:max-w-xl xl:max-w-2xl">
           <div class="font-medium text-zinc-900 dark:text-white truncate" title="${escapeHtml(t.subject)}">${escapeHtml(t.subject || 'No Subject')}</div>
           <div class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5" title="${escapeHtml(t.sender)}">${escapeHtml(t.sender || 'Unknown Sender')}</div>
         </td>
