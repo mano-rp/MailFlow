@@ -44,7 +44,7 @@
   height: 32px !important;
   min-height: 32px !important;
   margin: 1px 12px 1px 0 !important;
-  padding: 0 !important; /* Zero out outer padding so inner .TN aligns naturally */
+  padding: 0 !important;
   border-radius: 0 16px 16px 0 !important;
   cursor: pointer !important;
   user-select: none !important;
@@ -73,7 +73,7 @@
 }
 
 .mailflow-nav-item .TN {
-  padding-left: 26px !important; /* Exact native Gmail left indent */
+  padding-left: 26px !important;
   padding-right: 12px !important;
   display: flex !important;
   align-items: center !important;
@@ -86,9 +86,9 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 20px !important; /* Exact native Gmail icon container width */
+  width: 20px !important;
   height: 20px !important;
-  margin-right: 18px !important; /* Exact native Gmail spacing between icon and text */
+  margin-right: 18px !important;
   margin-left: 0 !important;
   padding: 0 !important;
   flex-shrink: 0 !important;
@@ -134,7 +134,6 @@
   color: var(--mf-on-primary-container) !important;
 }
 
-/* Status Indicator Dot (Aligned with Gmail count badges) */
 .mailflow-nav-item .bsU {
   display: flex !important;
   align-items: center !important;
@@ -174,20 +173,30 @@
 
 /* ==========================================================================
    2. Gmail Native Light Mode Tab View (Suspected Emails Hub)
+   Ultra-stable overlay container that never disappears or flickers
    ========================================================================== */
 #mailflow-placeholder-view {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 100%;
-  width: 100%;
+  display: none !important;
+}
+
+body.mailflow-active-mode #mailflow-placeholder-view {
+  display: flex !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
   background-color: #ffffff !important;
-  color: #1f1f1f;
-  box-sizing: border-box;
-  font-family: var(--mf-font);
-  animation: mailflow-fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow-y: auto;
-  border-radius: 16px;
+  color: #1f1f1f !important;
+  box-sizing: border-box !important;
+  font-family: var(--mf-font) !important;
+  flex-direction: column !important;
+  z-index: 25 !important;
+  overflow-y: auto !important;
+  border-radius: 16px !important;
 }
 
 .mailflow-view-header {
@@ -197,6 +206,7 @@
   padding: 16px 24px;
   border-bottom: 1px solid #e0e4eb;
   background-color: #ffffff;
+  flex-shrink: 0;
 }
 
 .mailflow-view-title-group {
@@ -251,13 +261,14 @@
   border-color: #c4c7c5;
 }
 
+/* Empty State / Triage Container */
 .mailflow-view-body {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   flex: 1;
-  min-height: 380px;
+  min-height: 400px;
   padding: 48px 24px;
   text-align: center;
 }
@@ -483,9 +494,4 @@
 @keyframes mailflow-toast-slide-up {
   from { opacity: 0; transform: translateY(16px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes mailflow-fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
 }

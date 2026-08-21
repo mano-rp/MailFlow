@@ -1,6 +1,6 @@
 /**
  * MailFlow Chrome Extension - Content Script
- * Native Gmail DOM Injections & Real-Time Backend Security Gate
+ * Native Gmail DOM Injections & Rock-Solid UI Synchronization
  */
 
 (function () {
@@ -8,7 +8,7 @@
 
   const BACKEND_URL = 'http://localhost:8000';
   let isBackendOnline = false;
-  let isMailFlowTabActive = false;
+  let isMailFlowTabActive = (window.location.hash === '#mailflow');
   let observer = null;
   let scanDebounceTimer = null;
   let heartbeatTimer = null;
@@ -91,23 +91,19 @@
 
     const sidebarWrapper = document.getElementById('mailflow-aim-wrapper');
     if (sidebarWrapper) {
-      if (currentSettings.autoScan) {
-        sidebarWrapper.style.display = 'block';
-      } else {
-        sidebarWrapper.style.display = 'none';
-      }
+      sidebarWrapper.style.display = currentSettings.autoScan ? 'block' : 'none';
     }
   }
 
   /**
    * =========================================================================
-   * MODULE 1: TOAST NOTIFICATIONS & SEARCH BAR HOOK
+   * MODULE 1: SEARCH BAR HOOK & TOASTS
    * =========================================================================
    */
 
   function setSearchBarText(text) {
     const searchInput = document.querySelector('input[name="q"], input[aria-label*="Search"], form[role="search"] input');
-    if (searchInput) {
+    if (searchInput && searchInput.value !== text) {
       searchInput.value = text;
       searchInput.dispatchEvent(new Event('input', { bubbles: true }));
       searchInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -177,7 +173,7 @@
 
   /**
    * =========================================================================
-   * MODULE 2: SIDEBAR LABEL INJECTION (Aligned with Drafts, Purchases, Spam)
+   * MODULE 2: SIDEBAR LABEL INJECTION
    * =========================================================================
    */
 
@@ -225,7 +221,7 @@
 
     const navItem = document.createElement('div');
     navItem.id = 'mailflow-sidebar-nav-item';
-    navItem.className = 'TO mailflow-nav-item';
+    navItem.className = 'TO mailflow-nav-item' + (isMailFlowTabActive ? ' active' : '');
     navItem.setAttribute('role', 'button');
     navItem.setAttribute('tabindex', '0');
     navItem.setAttribute('aria-label', 'MailFlow');
@@ -245,8 +241,9 @@
     `;
 
     navItem.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      activateMailFlowView(true);
+      activateMailFlowView();
     });
 
     aimWrapper.appendChild(navItem);
@@ -276,26 +273,11 @@
         }
       });
     });
-
-    window.removeEventListener('hashchange', handleHashChange);
-    window.addEventListener('hashchange', handleHashChange);
-  }
-
-  function handleHashChange() {
-    if (window.location.hash === '#mailflow') {
-      if (!isMailFlowTabActive) {
-        activateMailFlowView(false);
-      }
-    } else {
-      if (isMailFlowTabActive) {
-        deactivateMailFlowView();
-      }
-    }
   }
 
   /**
    * =========================================================================
-   * MODULE 3: GMAIL LIGHT MODE TAB VIEW (Suspected Emails Hub)
+   * MODULE 3: ROCK-SOLID GMAIL LIGHT MODE VIEW & STATE SYNC
    * =========================================================================
    */
 
@@ -304,36 +286,13 @@
            document.querySelector('.AO') || 
            document.querySelector('.bkK') || 
            document.querySelector('.UI') ||
+           document.querySelector('.nH.bkK') ||
            document.body;
   }
 
-  function activateMailFlowView(updateHash = true) {
-    isMailFlowTabActive = true;
-
-    if (updateHash && window.location.hash !== '#mailflow') {
-      window.location.hash = 'mailflow';
-    }
-
-    setSearchBarText('in:MailFlow');
-
-    const navItem = document.getElementById('mailflow-sidebar-nav-item');
-    if (navItem) navItem.classList.add('active');
-
-    document.querySelectorAll('div[role="navigation"] .nZ, div[role="navigation"] .active').forEach(el => {
-      if (el.id !== 'mailflow-sidebar-nav-item') {
-        el.classList.remove('nZ');
-      }
-    });
-
+  function ensureViewMounted() {
     const mainContainer = getMainContainer();
     if (!mainContainer) return;
-
-    Array.from(mainContainer.children).forEach(child => {
-      if (child.id !== 'mailflow-placeholder-view') {
-        child.dataset.mailflowPrevDisplay = child.style.display;
-        child.style.display = 'none';
-      }
-    });
 
     let placeholder = document.getElementById('mailflow-placeholder-view');
     if (!placeholder) {
@@ -374,29 +333,56 @@
       }
 
       mainContainer.appendChild(placeholder);
+    } else if (placeholder.parentElement !== mainContainer) {
+      mainContainer.appendChild(placeholder);
     }
-    placeholder.style.display = 'flex';
+  }
+
+  function syncMailFlowState() {
+    ensureViewMounted();
+
+    const navItem = document.getElementById('mailflow-sidebar-nav-item');
+
+    if (isMailFlowTabActive) {
+      document.body.classList.add('mailflow-active-mode');
+      if (navItem) navItem.classList.add('active');
+
+      // Deselect native Gmail active folder indicators
+      document.querySelectorAll('div[role="navigation"] .nZ').forEach(el => {
+        if (el !== navItem) {
+          el.classList.remove('nZ');
+        }
+      });
+
+      setSearchBarText('in:MailFlow');
+    } else {
+      document.body.classList.remove('mailflow-active-mode');
+      if (navItem) navItem.classList.remove('active');
+    }
+  }
+
+  function activateMailFlowView() {
+    isMailFlowTabActive = true;
+    history.replaceState(null, '', '#mailflow');
+    syncMailFlowState();
   }
 
   function deactivateMailFlowView() {
     isMailFlowTabActive = false;
-
     clearSearchBarIfMailFlow();
+    syncMailFlowState();
+  }
 
-    const navItem = document.getElementById('mailflow-sidebar-nav-item');
-    if (navItem) navItem.classList.remove('active');
-
-    const placeholder = document.getElementById('mailflow-placeholder-view');
-    if (placeholder) placeholder.style.display = 'none';
-
-    const mainContainer = getMainContainer();
-    if (!mainContainer) return;
-
-    Array.from(mainContainer.children).forEach(child => {
-      if (child.id !== 'mailflow-placeholder-view') {
-        child.style.display = child.dataset.mailflowPrevDisplay || '';
+  function handleHashChange() {
+    if (window.location.hash === '#mailflow') {
+      if (!isMailFlowTabActive) {
+        activateMailFlowView();
       }
-    });
+    } else {
+      if (isMailFlowTabActive) {
+        deactivateMailFlowView();
+      }
+    }
   }
 
   /**
@@ -538,7 +524,7 @@
 
   /**
    * =========================================================================
-   * OBSERVER & INITIALIZATION
+   * OBSERVER & PERSISTENT DOM SYNCHRONIZATION
    * =========================================================================
    */
 
@@ -546,6 +532,8 @@
     if (!document.getElementById('mailflow-aim-wrapper')) {
       injectSidebarItem();
     }
+
+    syncMailFlowState();
 
     if (scanDebounceTimer) clearTimeout(scanDebounceTimer);
     scanDebounceTimer = setTimeout(() => {
@@ -558,11 +546,10 @@
     await checkBackendHeartbeat();
     injectSidebarItem();
     scanEmailRows();
+    syncMailFlowState();
 
-    // Check if directly loaded with #mailflow
-    if (window.location.hash === '#mailflow') {
-      activateMailFlowView(false);
-    }
+    window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('hashchange', handleHashChange);
 
     if (observer) observer.disconnect();
     observer = new MutationObserver(() => {
