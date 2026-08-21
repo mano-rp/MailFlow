@@ -66,44 +66,49 @@
     <section class="actions-section">
       <div class="section-label">Quick Scans</div>
 
-      <button id="btn-scan-page" class="pop-action-btn" title="Scan all visible emails on the current page">
+      <button id="btn-scan-page" class="pop-action-btn" title="Scan all visible emails on current page">
         <div class="btn-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             <path d="m9 12 2 2 4-4"/>
           </svg>
         </div>
-        <div class="btn-text-group">
-          <span class="btn-title">Scan All Emails in Page</span>
-          <span class="btn-desc">Evaluate all visible emails in current view</span>
-        </div>
+        <span class="btn-title">Scan Page</span>
       </button>
 
-      <button id="btn-scan-unread" class="pop-action-btn" title="Scan all unopened / unread emails">
+      <button id="btn-scan-unread" class="pop-action-btn" title="Scan all unread emails">
         <div class="btn-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
             <polyline points="22,6 12,13 2,6"/>
           </svg>
         </div>
-        <div class="btn-text-group">
-          <span class="btn-title">Scan Unopened Mails</span>
-          <span class="btn-desc">Evaluate all unread emails on the page</span>
-        </div>
+        <span class="btn-title">Scan Unopened Mails</span>
       </button>
 
-      <button id="btn-scan-selected" class="pop-action-btn" title="Scan all checked / selected emails">
+      <button id="btn-scan-selected" class="pop-action-btn" title="Scan all selected emails">
         <div class="btn-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 11 12 14 22 4"/>
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
           </svg>
         </div>
-        <div class="btn-text-group">
-          <span class="btn-title">Scan Selected Emails</span>
-          <span class="btn-desc">Evaluate all checked / selected emails</span>
-        </div>
+        <span class="btn-title">Scan Selected Mails</span>
       </button>
+    </section>
+
+    <!-- Hairline Divider -->
+    <hr class="section-divider">
+
+    <!-- Preferences / Auto-forward Section -->
+    <section class="preferences-section">
+      <label class="setting-row" for="toggle-autoforward">
+        <span class="setting-name">Auto-forward to SME Admin</span>
+        <div class="m3-switch">
+          <input type="checkbox" id="toggle-autoforward">
+          <span class="m3-track"><span class="m3-thumb"></span></span>
+        </div>
+      </label>
     </section>
 
     <!-- Hairline Divider -->

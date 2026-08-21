@@ -10,12 +10,14 @@ const DOM = {
   btnScanPage: document.getElementById('btn-scan-page'),
   btnScanUnread: document.getElementById('btn-scan-unread'),
   btnScanSelected: document.getElementById('btn-scan-selected'),
+  toggleAutoforward: document.getElementById('toggle-autoforward'),
   themeBtnLight: document.getElementById('theme-btn-light'),
   themeBtnDark: document.getElementById('theme-btn-dark'),
 };
 
 const DEFAULT_SETTINGS = {
   theme: 'light',
+  autoForwardAdmin: false,
 };
 
 // Storage helper with fallback
@@ -116,6 +118,14 @@ async function init() {
   // Apply Theme
   const currentTheme = settings.theme || 'light';
   setTheme(currentTheme);
+
+  // Apply Autoforward Toggle
+  if (DOM.toggleAutoforward) {
+    DOM.toggleAutoforward.checked = settings.autoForwardAdmin ?? false;
+    DOM.toggleAutoforward.addEventListener('change', (e) => {
+      storage.set({ autoForwardAdmin: e.target.checked });
+    });
+  }
 
   // Listeners
   DOM.themeBtnLight.addEventListener('click', () => setTheme('light'));
