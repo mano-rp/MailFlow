@@ -1254,3 +1254,60 @@ a[data-mailflow-defanged="true"] {
   border-radius: 4px !important;
   border: 1px dashed #f28b82 !important;
 }
+
+/* Dark Mode Support for Material 3 Overlay */
+[data-theme="dark"] .mf-modal-card,
+body.dark .mf-modal-card {
+  background: #1e1f20 !important;
+  border-color: #444746 !important;
+  color: #e3e3e3 !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .mf-modal-title,
+body.dark .mf-modal-title {
+  color: #f2f2f2 !important;
+}
+
+[data-theme="dark"] .mf-modal-subtitle,
+body.dark .mf-modal-subtitle {
+  color: #c4c7c5 !important;
+}
+
+[data-theme="dark"] .mf-meta-strip,
+body.dark .mf-meta-strip {
+  background-color: #2b2b2b !important;
+  border-color: #444746 !important;
+}
+
+[data-theme="dark"] .mf-meta-subject,
+body.dark .mf-meta-subject {
+  color: #e3e3e3 !important;
+}
+
+[data-theme="dark"] .mf-meta-sender,
+body.dark .mf-meta-sender {
+  color: #a8aaad !important;
+}
+
+[data-theme="dark"] .mf-btn-warning-proceed,
+body.dark .mf-btn-warning-proceed {
+  background-color: #2b2b2b !important;
+  border-color: #444746 !important;
+  color: #e3e3e3 !important;
+}
+
+[data-theme="dark"] .mf-btn-warning-proceed:hover,
+body.dark .mf-btn-warning-proceed:hover {
+  background-color: #383838 !important;
+}
+
+[data-theme="dark"] .mf-btn-subtle-link,
+body.dark .mf-btn-subtle-link {
+  color: #a8aaad !important;
+}
+
+[data-theme="dark"] .mf-btn-subtle-link:hover,
+body.dark .mf-btn-subtle-link:hover {
+  color: #f28b82 !important;
+}
