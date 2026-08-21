@@ -1,19 +1,21 @@
 /**
- * MailFlow Chrome Extension - Content Script (Sprint 1)
- * Native Gmail DOM Injections & Real-Time Security Integration
+ * MailFlow Chrome Extension - Content Script
+ * Native Gmail DOM Injections & Real-Time Backend Security Gate
  */
 
 (function () {
   'use strict';
 
   const BACKEND_URL = 'http://localhost:8000';
+  let isBackendOnline = false;
   let isMailFlowTabActive = false;
   let observer = null;
   let scanDebounceTimer = null;
+  let heartbeatTimer = null;
+
   let currentSettings = {
-    autoScan: true,
-    defangLinks: true,
     showInlineRows: true,
+    autoScan: true,
   };
 
   // SVG Icons
@@ -30,13 +32,13 @@
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="m9 12 2 2 4-4"/>
     </svg>`,
+    alertTriangle: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>`,
     check: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="20 6 9 17 4 12"/>
-    </svg>`,
-    alert: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="12" y1="8" x2="12" y2="12"/>
-      <line x1="12" y1="16" x2="12.01" y2="16"/>
     </svg>`,
     refresh: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -49,9 +51,57 @@
 
   /**
    * =========================================================================
-   * MODULE 0: SETTINGS SYNC
+   * MODULE 0: BACKEND HEALTH HEARTBEAT & SETTINGS
    * =========================================================================
    */
+
+  async function checkBackendHeartbeat() {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch(`${BACKEND_URL}/api/ping`, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      const wasOnline = isBackendOnline;
+      isBackendOnline = res.ok;
+
+      if (!wasOnline && isBackendOnline) {
+        updateOnlineUIState(true);
+      }
+    } catch (e) {
+      const wasOnline = isBackendOnline;
+      isBackendOnline = false;
+      if (wasOnline) {
+        updateOnlineUIState(false);
+      }
+    }
+  }
+
+  function updateOnlineUIState(online) {
+    const badge = document.getElementById('mailflow-nav-badge');
+    if (badge) {
+      if (online) {
+        badge.textContent = '0';
+        badge.className = 'mailflow-nav-badge';
+      } else {
+        badge.textContent = 'Offline';
+        badge.className = 'mailflow-nav-badge offline-badge';
+      }
+    }
+
+    const rowButtons = document.querySelectorAll('.mailflow-scan-btn');
+    rowButtons.forEach(btn => {
+      if (online) {
+        btn.classList.remove('backend-offline');
+      } else {
+        btn.classList.add('backend-offline');
+      }
+    });
+
+    if (isMailFlowTabActive) {
+      renderHubContent();
+    }
+  }
 
   function syncSettings() {
     if (typeof chrome !== 'undefined' && chrome.storage) {
@@ -63,7 +113,7 @@
         }
       });
 
-      chrome.storage.onChanged.addListener((changes, areaName) => {
+      chrome.storage.onChanged.addListener((changes) => {
         for (const [key, change] of Object.entries(changes)) {
           if (key in currentSettings) {
             currentSettings[key] = change.newValue;
@@ -75,19 +125,19 @@
   }
 
   function applySettings() {
-    const rowButtons = document.querySelectorAll('.mailflow-row-action-item');
-    rowButtons.forEach(btn => {
+    const rowItems = document.querySelectorAll('.mailflow-row-action-item');
+    rowItems.forEach(item => {
       if (currentSettings.showInlineRows) {
-        btn.classList.remove('mailflow-hidden-by-setting');
+        item.classList.remove('mailflow-hidden-by-setting');
       } else {
-        btn.classList.add('mailflow-hidden-by-setting');
+        item.classList.add('mailflow-hidden-by-setting');
       }
     });
   }
 
   /**
    * =========================================================================
-   * MODULE 1: TOAST NOTIFICATION SYSTEM
+   * MODULE 1: TOAST NOTIFICATIONS
    * =========================================================================
    */
 
@@ -145,7 +195,7 @@
 
   /**
    * =========================================================================
-   * MODULE 2: SIDEBAR NAVIGATION INJECTION
+   * MODULE 2: SIDEBAR TAB INJECTION
    * =========================================================================
    */
 
@@ -188,7 +238,9 @@
         ${ICONS.shield}
       </div>
       <span class="mailflow-nav-label">MailFlow</span>
-      <span class="mailflow-nav-badge" id="mailflow-nav-badge">0</span>
+      <span class="mailflow-nav-badge ${isBackendOnline ? '' : 'offline-badge'}" id="mailflow-nav-badge">
+        ${isBackendOnline ? '0' : 'Offline'}
+      </span>
     `;
 
     navItem.addEventListener('click', (e) => {
@@ -229,7 +281,7 @@
 
   /**
    * =========================================================================
-   * MODULE 3: MAILFLOW HUB / TRIAGE CONTAINER
+   * MODULE 3: MAILFLOW HUB / TRIAGE VIEW
    * =========================================================================
    */
 
@@ -265,11 +317,12 @@
 
     let hub = document.getElementById('mailflow-hub-container');
     if (!hub) {
-      hub = createHubElement();
+      hub = document.createElement('div');
+      hub.id = 'mailflow-hub-container';
       mainContainer.appendChild(hub);
-    } else {
-      hub.style.display = 'flex';
     }
+    hub.style.display = 'flex';
+    renderHubContent();
   }
 
   function deactivateMailFlowView() {
@@ -291,11 +344,67 @@
     });
   }
 
-  function createHubElement() {
-    const container = document.createElement('div');
-    container.id = 'mailflow-hub-container';
+  function renderHubContent() {
+    const hub = document.getElementById('mailflow-hub-container');
+    if (!hub) return;
 
-    container.innerHTML = `
+    if (!isBackendOnline) {
+      // Offline State View
+      hub.innerHTML = `
+        <div class="mailflow-hub-header">
+          <div class="mailflow-hub-title-group">
+            <h1 class="mailflow-hub-title">
+              ${ICONS.shieldHeader}
+              MailFlow Quarantine & Triage Hub
+            </h1>
+            <p class="mailflow-hub-subtitle">SME Zero-Trust Email Security</p>
+          </div>
+          <div class="mailflow-hub-actions">
+            <button id="mailflow-btn-reconnect" class="mailflow-hub-btn mailflow-hub-btn-primary">
+              ${ICONS.refresh}
+              Retry Connection
+            </button>
+          </div>
+        </div>
+
+        <div class="mailflow-triage-panel offline-state">
+          <div class="mailflow-empty-icon">
+            ${ICONS.alertTriangle}
+          </div>
+          <h2 class="mailflow-empty-title" style="color: #dc2626;">Backend Server Disconnected</h2>
+          <p class="mailflow-empty-desc">
+            MailFlow requires the local backend server to perform real-time thread scanning, link defanging, and quarantine triage.<br><br>
+            Please start the backend server in your terminal:
+            <br>
+            <code>./start_backend.sh</code>
+          </p>
+          <button id="mailflow-btn-retry" class="mailflow-hub-btn mailflow-hub-btn-primary">
+            Check Connection (:8000)
+          </button>
+        </div>
+      `;
+
+      const reconnect = async (btn) => {
+        btn.innerHTML = `<span>Checking :8000...</span>`;
+        await checkBackendHeartbeat();
+        if (isBackendOnline) {
+          showToast('Backend connected successfully!', 'success');
+          renderHubContent();
+        } else {
+          showToast('Backend still offline. Make sure ./start_backend.sh is running.', 'error');
+          renderHubContent();
+        }
+      };
+
+      const btn1 = hub.querySelector('#mailflow-btn-reconnect');
+      const btn2 = hub.querySelector('#mailflow-btn-retry');
+      if (btn1) btn1.addEventListener('click', () => reconnect(btn1));
+      if (btn2) btn2.addEventListener('click', () => reconnect(btn2));
+      return;
+    }
+
+    // Online State View
+    hub.innerHTML = `
       <div class="mailflow-hub-header">
         <div class="mailflow-hub-title-group">
           <h1 class="mailflow-hub-title">
@@ -305,34 +414,34 @@
           <p class="mailflow-hub-subtitle">SME Zero-Trust Email Security • Real-time Threat Guard</p>
         </div>
         <div class="mailflow-hub-actions">
-          <button id="mailflow-btn-test-sync" class="mailflow-hub-btn mailflow-hub-btn-primary">
+          <button id="mailflow-btn-sync" class="mailflow-hub-btn mailflow-hub-btn-primary">
             ${ICONS.refresh}
-            Sync Shield Status
+            Sync Status
           </button>
         </div>
       </div>
 
       <div class="mailflow-metrics-row">
         <div class="mailflow-metric-card">
-          <span class="mailflow-metric-label">Protection Status</span>
+          <span class="mailflow-metric-label">Protection Mode</span>
           <div class="mailflow-metric-value">
-            <span style="color: #1e8e3e;">Active</span>
+            <span style="color: #16a34a;">Active</span>
           </div>
           <span class="mailflow-metric-status">
-            ${ICONS.checkCircle} Fleet: Local Dev (:8000)
+            ${ICONS.checkCircle} Connected (:8000)
           </span>
         </div>
 
         <div class="mailflow-metric-card">
           <span class="mailflow-metric-label">Quarantined Threads</span>
-          <div class="mailflow-metric-value" id="mailflow-hub-quarantined-count">0</div>
-          <span class="mailflow-metric-status" style="color: #5e5e5e;">Pending triage</span>
+          <div class="mailflow-metric-value">0</div>
+          <span class="mailflow-metric-status" style="color: #64748b;">0 pending review</span>
         </div>
 
         <div class="mailflow-metric-card">
-          <span class="mailflow-metric-label">Defanged Untrusted Links</span>
+          <span class="mailflow-metric-label">Defanged Links</span>
           <div class="mailflow-metric-value">0</div>
-          <span class="mailflow-metric-status" style="color: #1a73e8;">Zero-trust active</span>
+          <span class="mailflow-metric-status" style="color: #0b57d0;">Zero-trust active</span>
         </div>
       </div>
 
@@ -344,46 +453,23 @@
         <p class="mailflow-empty-desc">
           Your workspace is currently safe. Incoming emails are monitored in real-time. Any flagged phishing attempts, malware attachments, or defanged links will appear here for security review.
         </p>
-        <button id="mailflow-btn-ping-backend" class="mailflow-hub-btn mailflow-hub-btn-secondary">
-          Test Health Handshake (GET /api/ping)
-        </button>
       </div>
     `;
 
-    const testSyncBtn = container.querySelector('#mailflow-btn-test-sync');
-    const pingBtn = container.querySelector('#mailflow-btn-ping-backend');
-
-    const handleHealthCheck = async (button) => {
-      const origText = button.innerHTML;
-      button.innerHTML = `<span>Checking :8000...</span>`;
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/ping`);
-        if (res.ok) {
-          const data = await res.json();
-          button.innerHTML = `<span style="color: #1e8e3e;">✓ ${data.status.toUpperCase()} (${data.version})</span>`;
-          showToast(`Backend connection healthy (v${data.version || '0.1.0'})`, 'success');
-        } else {
-          button.innerHTML = `<span style="color: #d93025;">⚠️ HTTP ${res.status}</span>`;
-          showToast(`Backend returned HTTP ${res.status}`, 'warning');
-        }
-      } catch (e) {
-        button.innerHTML = `<span style="color: #d93025;">○ Backend Offline</span>`;
-        showToast('Backend server is offline (http://localhost:8000)', 'error');
-      }
-      setTimeout(() => {
-        button.innerHTML = origText;
-      }, 2500);
-    };
-
-    if (testSyncBtn) testSyncBtn.addEventListener('click', () => handleHealthCheck(testSyncBtn));
-    if (pingBtn) pingBtn.addEventListener('click', () => handleHealthCheck(pingBtn));
-
-    return container;
+    const syncBtn = hub.querySelector('#mailflow-btn-sync');
+    if (syncBtn) {
+      syncBtn.addEventListener('click', async () => {
+        syncBtn.innerHTML = `<span>Checking...</span>`;
+        await checkBackendHeartbeat();
+        renderHubContent();
+        showToast('Backend health check completed', 'success');
+      });
+    }
   }
 
   /**
    * =========================================================================
-   * MODULE 4: EMAIL ROW HOVER ACTION BUTTON INJECTION (🛡️ SCAN)
+   * MODULE 4: EMAIL ROW SCAN BUTTON INJECTION
    * =========================================================================
    */
 
@@ -409,6 +495,17 @@
   async function handleScanClick(row, btn, e) {
     e.preventDefault();
     e.stopPropagation();
+
+    // Guard: Only allow scan if backend is verified online
+    if (!isBackendOnline) {
+      showToast(
+        '⚠️ MailFlow is paused: Backend offline. Run ./start_backend.sh to enable email scanning.',
+        'warning',
+        'Open Hub',
+        () => activateMailFlowView()
+      );
+      return;
+    }
 
     if (btn.classList.contains('scanning')) return;
 
@@ -442,29 +539,32 @@
         `;
 
         showToast(
-          `MailFlow Scan: "${subject.substring(0, 32)}${subject.length > 32 ? '...' : ''}" from ${sender} is SAFE (${data.latency_ms || elapsed}ms)`,
+          `MailFlow: "${subject.substring(0, 30)}${subject.length > 30 ? '...' : ''}" from ${sender} is SAFE (${data.latency_ms || elapsed}ms)`,
           'success'
         );
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (err) {
-      btn.className = 'mailflow-scan-btn verdict-error';
+      isBackendOnline = false;
+      updateOnlineUIState(false);
+
+      btn.className = 'mailflow-scan-btn backend-offline';
       btn.innerHTML = `
-        ${ICONS.alert}
+        ${ICONS.shieldRow}
         <span class="mailflow-scan-label">Offline</span>
       `;
 
       showToast(
-        `MailFlow: Backend offline (:8000). Start FastAPI server to scan threads.`,
-        'warning',
+        '⚠️ Backend connection lost. Run ./start_backend.sh to resume scanning.',
+        'error',
         'Open Hub',
         () => activateMailFlowView()
       );
     }
 
     setTimeout(() => {
-      btn.className = 'mailflow-scan-btn';
+      btn.className = `mailflow-scan-btn ${isBackendOnline ? '' : 'backend-offline'}`;
       btn.innerHTML = `
         ${ICONS.shieldRow}
         <span class="mailflow-scan-label">Scan</span>
@@ -489,7 +589,7 @@
 
     const scanBtn = document.createElement('button');
     scanBtn.type = 'button';
-    scanBtn.className = 'mailflow-scan-btn';
+    scanBtn.className = `mailflow-scan-btn ${isBackendOnline ? '' : 'backend-offline'}`;
     scanBtn.setAttribute('aria-label', 'Scan email with MailFlow');
     scanBtn.innerHTML = `
       ${ICONS.shieldRow}
@@ -537,13 +637,13 @@
     }, 100);
   }
 
-  function init() {
+  async function init() {
     syncSettings();
+    await checkBackendHeartbeat();
     injectSidebarItem();
     scanEmailRows();
 
     if (observer) observer.disconnect();
-
     observer = new MutationObserver(() => {
       handleMutations();
     });
@@ -552,6 +652,10 @@
       childList: true,
       subtree: true
     });
+
+    // Periodic heartbeat check every 8 seconds
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = setInterval(checkBackendHeartbeat, 8000);
   }
 
   if (document.readyState === 'loading') {

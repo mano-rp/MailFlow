@@ -7,122 +7,80 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="popup-container">
-    <!-- Header -->
-    <header class="header">
-      <div class="brand">
-        <div class="logo-badge">
-          <svg class="shield-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <div class="popup-wrap">
+    <!-- Top Header -->
+    <header class="pop-header">
+      <div class="pop-brand">
+        <div class="pop-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             <path d="m9 12 2 2 4-4"/>
           </svg>
         </div>
-        <div class="brand-text">
-          <span class="brand-name">MailFlow</span>
-          <span class="brand-tag">SME Shield</span>
+        <div class="pop-brand-meta">
+          <span class="pop-title">MailFlow</span>
+          <span class="pop-version">v0.1.0</span>
         </div>
       </div>
-      <div id="connection-pill" class="status-pill checking">
-        <span class="pill-dot"></span>
-        <span id="connection-text" class="pill-label">Checking...</span>
-      </div>
+      <button id="btn-refresh" class="btn-icon" title="Check backend connection">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+      </button>
     </header>
 
-    <!-- Main Content -->
-    <main class="content">
-      <!-- Status Card -->
-      <section class="card status-card">
-        <div class="card-header">
-          <span class="section-title">Shield Overview</span>
-          <span class="badge-version">v0.1.0</span>
+    <!-- Visual Connection Status Banner -->
+    <div id="status-card" class="status-card checking">
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <div class="status-text-wrap">
+          <span id="status-title" class="status-title">Checking connection...</span>
+          <span id="status-subtitle" class="status-subtitle">http://localhost:8000</span>
         </div>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <span class="stat-label">Protection Mode</span>
-            <span class="stat-value text-success">
-              <svg class="mini-icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
-              Active Monitoring
-            </span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Backend Fleet</span>
-            <span class="stat-value" id="backend-fleet-text">Local Dev (:8000)</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Security Settings -->
-      <section class="card settings-card">
-        <div class="card-header">
-          <span class="section-title">Security & UI Injections</span>
-        </div>
-        <div class="toggles-list">
-          <label class="toggle-row" for="toggle-autoscan">
-            <div class="toggle-info">
-              <span class="toggle-title">Auto-scan incoming mail</span>
-              <span class="toggle-desc">Trigger instant background safety scan on unread threads</span>
-            </div>
-            <div class="switch">
-              <input type="checkbox" id="toggle-autoscan" checked>
-              <span class="slider"></span>
-            </div>
-          </label>
-
-          <label class="toggle-row" for="toggle-defang">
-            <div class="toggle-info">
-              <span class="toggle-title">Defang untrusted links</span>
-              <span class="toggle-desc">Wrap high-risk URLs with zero-trust safety gateway</span>
-            </div>
-            <div class="switch">
-              <input type="checkbox" id="toggle-defang" checked>
-              <span class="slider"></span>
-            </div>
-          </label>
-
-          <label class="toggle-row" for="toggle-inlinerow">
-            <div class="toggle-info">
-              <span class="toggle-title">Show inline action buttons</span>
-              <span class="toggle-desc">Inject native 🛡️ Scan buttons into Gmail email row hoverbars</span>
-            </div>
-            <div class="switch">
-              <input type="checkbox" id="toggle-inlinerow" checked>
-              <span class="slider"></span>
-            </div>
-          </label>
-        </div>
-      </section>
-
-      <!-- Ping Health Feedback Box -->
-      <section class="ping-result-box" id="ping-result-box">
-        <div class="ping-status-row">
-          <span class="ping-indicator-dot" id="ping-dot"></span>
-          <span class="ping-summary" id="ping-summary">Ready to test connection</span>
-          <span class="ping-latency" id="ping-latency">-- ms</span>
-        </div>
-        <div class="ping-meta" id="ping-meta">Target: http://localhost:8000/api/ping</div>
-      </section>
-
-      <!-- Actions -->
-      <div class="action-buttons">
-        <button id="btn-ping" class="btn btn-primary">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-          <span id="btn-ping-text">Test Backend Ping</span>
-        </button>
-
-        <button id="btn-reload" class="btn btn-secondary" title="Reload Gmail tab">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-          </svg>
-          <span>Reload Tab</span>
-        </button>
       </div>
-    </main>
+      <span id="status-latency" class="status-latency">-- ms</span>
+    </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-      <span>MailFlow Extension &bull; Sprint 1 Native Injections</span>
+    <!-- Minimal Settings -->
+    <div class="settings-section">
+      <span class="section-heading">Protection Settings</span>
+
+      <label class="setting-toggle" for="toggle-inline-scan">
+        <div class="toggle-text">
+          <span class="toggle-title">Inline Row Scanner</span>
+          <span class="toggle-desc">Show scan button in Gmail email rows</span>
+        </div>
+        <div class="switch">
+          <input type="checkbox" id="toggle-inline-scan" checked>
+          <span class="slider"></span>
+        </div>
+      </label>
+
+      <label class="setting-toggle" for="toggle-auto-shield">
+        <div class="toggle-text">
+          <span class="toggle-title">Auto Threat Guard</span>
+          <span class="toggle-desc">Zero-trust defanging & triage hub</span>
+        </div>
+        <div class="switch">
+          <input type="checkbox" id="toggle-auto-shield" checked>
+          <span class="slider"></span>
+        </div>
+      </label>
+    </div>
+
+    <!-- Notice if Offline -->
+    <div id="offline-banner" class="offline-banner hidden">
+      <svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span>Extension is paused until backend starts. Run <code>./start_backend.sh</code></span>
+    </div>
+
+    <!-- Minimal Footer -->
+    <footer class="pop-footer">
+      <span id="fleet-target">Fleet: Local Dev (Port 8000)</span>
     </footer>
   </div>
 
