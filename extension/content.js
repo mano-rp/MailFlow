@@ -9,6 +9,7 @@
   const BACKEND_URL = 'http://localhost:8000';
   let isMailFlowTabActive = false;
   let observer = null;
+  let scanDebounceTimer = null;
 
   // SVG Icons
   const ICONS = {
@@ -16,9 +17,21 @@
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="m9 12 2 2 4-4"/>
     </svg>`,
+    shieldRow: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <path d="m9 12 2 2 4-4"/>
+    </svg>`,
     shieldHeader: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0b57d0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="m9 12 2 2 4-4"/>
+    </svg>`,
+    check: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>`,
+    alert: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
     </svg>`,
     refresh: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -31,16 +44,73 @@
 
   /**
    * =========================================================================
-   * MODULE 1: SIDEBAR NAVIGATION INJECTION
+   * MODULE 1: TOAST NOTIFICATION SYSTEM
+   * =========================================================================
+   */
+
+  function showToast(message, type = 'info', actionLabel = null, onAction = null) {
+    let container = document.getElementById('mailflow-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'mailflow-toast-container';
+      document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'mailflow-toast';
+
+    let iconSvg = ICONS.shieldRow;
+    if (type === 'success') {
+      iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+    } else if (type === 'warning' || type === 'error') {
+      iconSvg = `<svg class="mailflow-toast-icon" viewBox="0 0 24 24" fill="none" stroke="#ea4335" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+    }
+
+    toast.innerHTML = `
+      <div class="mailflow-toast-content">
+        ${iconSvg}
+        <span class="mailflow-toast-text">${message}</span>
+      </div>
+      ${actionLabel ? `<button class="mailflow-toast-action">${actionLabel}</button>` : ''}
+    `;
+
+    if (actionLabel && onAction) {
+      const actionBtn = toast.querySelector('.mailflow-toast-action');
+      actionBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onAction();
+        dismissToast(toast);
+      });
+    }
+
+    container.appendChild(toast);
+
+    // Auto dismiss after 4.5 seconds
+    setTimeout(() => {
+      dismissToast(toast);
+    }, 4500);
+  }
+
+  function dismissToast(toast) {
+    if (!toast || !toast.parentElement) return;
+    toast.classList.add('hiding');
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.parentElement.removeChild(toast);
+      }
+    }, 250);
+  }
+
+  /**
+   * =========================================================================
+   * MODULE 2: SIDEBAR NAVIGATION INJECTION
    * =========================================================================
    */
 
   function findSidebarContainer() {
-    // Priority search for standard Gmail left nav list container
     const nav = document.querySelector('div[role="navigation"]');
     if (!nav) return null;
 
-    // Look for Gmail's item group list container (.TK, .wT, .aim parent)
     const tkList = nav.querySelector('div.TK') || 
                    nav.querySelector('.wT') || 
                    nav.querySelector('div.aeN') || 
@@ -48,7 +118,6 @@
     
     if (tkList) return tkList;
 
-    // Fallback: parent of inbox / any .aim item
     const aimItem = nav.querySelector('.aim') || nav.querySelector('.TO');
     if (aimItem && aimItem.parentElement) {
       return aimItem.parentElement;
@@ -59,13 +128,12 @@
 
   function injectSidebarItem() {
     if (document.getElementById('mailflow-sidebar-nav-item')) {
-      return; // Already injected
+      return;
     }
 
     const sidebarContainer = findSidebarContainer();
     if (!sidebarContainer) return;
 
-    // Create native Gmail-styled navigation item
     const navItem = document.createElement('div');
     navItem.id = 'mailflow-sidebar-nav-item';
     navItem.className = 'mailflow-nav-item';
@@ -81,13 +149,11 @@
       <span class="mailflow-nav-badge" id="mailflow-nav-badge">0</span>
     `;
 
-    // Click handler for tab switching
     navItem.addEventListener('click', (e) => {
       e.stopPropagation();
       activateMailFlowView();
     });
 
-    // Insert after standard top folders or at top of the navigation list
     const draftsItem = sidebarContainer.querySelector('a[href*="#drafts"]') || 
                        sidebarContainer.querySelector('div[data-tooltip*="Drafts"]') ||
                        sidebarContainer.querySelector('div.aim:nth-child(5)');
@@ -98,7 +164,6 @@
       sidebarContainer.appendChild(navItem);
     }
 
-    // Attach listener to native Gmail items to reset MailFlow tab when clicked
     attachNativeNavListeners();
   }
 
@@ -122,7 +187,7 @@
 
   /**
    * =========================================================================
-   * MODULE 2: MAILFLOW HUB / TRIAGE CONTAINER
+   * MODULE 3: MAILFLOW HUB / TRIAGE CONTAINER
    * =========================================================================
    */
 
@@ -140,7 +205,6 @@
     const navItem = document.getElementById('mailflow-sidebar-nav-item');
     if (navItem) navItem.classList.add('active');
 
-    // Deselect Gmail's native active items visually
     document.querySelectorAll('div[role="navigation"] .nZ, div[role="navigation"] .active').forEach(el => {
       if (el.id !== 'mailflow-sidebar-nav-item') {
         el.classList.remove('nZ');
@@ -150,7 +214,6 @@
     const mainContainer = getMainContainer();
     if (!mainContainer) return;
 
-    // Hide native mail list tables
     Array.from(mainContainer.children).forEach(child => {
       if (child.id !== 'mailflow-hub-container') {
         child.dataset.mailflowPrevDisplay = child.style.display;
@@ -245,7 +308,6 @@
       </div>
     `;
 
-    // Button event listeners
     const testSyncBtn = container.querySelector('#mailflow-btn-test-sync');
     const pingBtn = container.querySelector('#mailflow-btn-ping-backend');
 
@@ -257,11 +319,14 @@
         if (res.ok) {
           const data = await res.json();
           button.innerHTML = `<span style="color: #1e8e3e;">✓ ${data.status.toUpperCase()} (${data.version})</span>`;
+          showToast(`Backend connection healthy (v${data.version || '0.1.0'})`, 'success');
         } else {
           button.innerHTML = `<span style="color: #d93025;">⚠️ HTTP ${res.status}</span>`;
+          showToast(`Backend returned HTTP ${res.status}`, 'warning');
         }
       } catch (e) {
         button.innerHTML = `<span style="color: #d93025;">○ Backend Offline</span>`;
+        showToast('Backend server is offline (http://localhost:8000)', 'error');
       }
       setTimeout(() => {
         button.innerHTML = origText;
@@ -276,20 +341,178 @@
 
   /**
    * =========================================================================
+   * MODULE 4: EMAIL ROW HOVER ACTION BUTTON INJECTION (🛡️ SCAN)
+   * =========================================================================
+   */
+
+  function extractRowMetadata(row) {
+    // 1. Extract Sender
+    let sender = 'Unknown Sender';
+    const senderEl = row.querySelector('.yP, .zF, span[email], .bA4 span, .yW span, span[name]');
+    if (senderEl) {
+      sender = senderEl.getAttribute('email') || 
+               senderEl.getAttribute('name') || 
+               senderEl.innerText.trim() || 
+               'Unknown Sender';
+    }
+
+    // 2. Extract Subject
+    let subject = 'No Subject';
+    const subjectEl = row.querySelector('.bog, .bqe, span.bqe, .y6 span');
+    if (subjectEl) {
+      subject = subjectEl.innerText.trim() || 'No Subject';
+    }
+
+    return { sender, subject };
+  }
+
+  async function handleScanClick(row, btn, e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (btn.classList.contains('scanning')) return;
+
+    const { sender, subject } = extractRowMetadata(row);
+
+    // Enter scanning UI state
+    btn.className = 'mailflow-scan-btn scanning';
+    btn.innerHTML = `
+      <div class="mailflow-scan-spinner"></div>
+      <span class="mailflow-scan-label">Scanning</span>
+    `;
+
+    try {
+      const startTime = performance.now();
+      const response = await fetch(`${BACKEND_URL}/api/scan-ping`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ sender, subject })
+      });
+
+      const elapsed = Math.round(performance.now() - startTime);
+
+      if (response.ok) {
+        const data = await response.json();
+        // Safe Verdict State
+        btn.className = 'mailflow-scan-btn verdict-safe';
+        btn.innerHTML = `
+          ${ICONS.check}
+          <span class="mailflow-scan-label">Safe (${data.latency_ms || elapsed}ms)</span>
+        `;
+
+        showToast(
+          `MailFlow Scan: "${subject.substring(0, 32)}${subject.length > 32 ? '...' : ''}" from ${sender} is SAFE (${data.latency_ms || elapsed}ms)`,
+          'success'
+        );
+      } else {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch (err) {
+      // Error State
+      btn.className = 'mailflow-scan-btn verdict-error';
+      btn.innerHTML = `
+        ${ICONS.alert}
+        <span class="mailflow-scan-label">Offline</span>
+      `;
+
+      showToast(
+        `MailFlow: Backend offline (:8000). Start FastAPI server to scan threads.`,
+        'warning',
+        'Open Hub',
+        () => activateMailFlowView()
+      );
+    }
+
+    // Reset button after 2.5 seconds
+    setTimeout(() => {
+      btn.className = 'mailflow-scan-btn';
+      btn.innerHTML = `
+        ${ICONS.shieldRow}
+        <span class="mailflow-scan-label">Scan</span>
+      `;
+    }, 2800);
+  }
+
+  function injectScanButtonIntoRow(row) {
+    if (row.dataset.mailflowInjected === 'true') {
+      return;
+    }
+
+    // Locate the row's hover action bar
+    const actionToolbar = row.querySelector('ul.bq4, ul.aqL, ul[role="toolbar"], td.bq9 ul, .bq8 ul, .a4y ul, ul.bqe, ul.bqZ');
+    
+    // Create the scan action button element
+    const actionItem = document.createElement('li');
+    actionItem.className = 'mailflow-row-action-item';
+    actionItem.setAttribute('role', 'button');
+    actionItem.setAttribute('title', 'Scan email with MailFlow SME Shield');
+
+    const scanBtn = document.createElement('button');
+    scanBtn.type = 'button';
+    scanBtn.className = 'mailflow-scan-btn';
+    scanBtn.setAttribute('aria-label', 'Scan email with MailFlow');
+    scanBtn.innerHTML = `
+      ${ICONS.shieldRow}
+      <span class="mailflow-scan-label">Scan</span>
+    `;
+
+    scanBtn.addEventListener('click', (e) => handleScanClick(row, scanBtn, e));
+    actionItem.appendChild(scanBtn);
+
+    if (actionToolbar) {
+      // Prepend or insert nicely at start of action toolbar
+      actionToolbar.insertBefore(actionItem, actionToolbar.firstChild);
+      row.dataset.mailflowInjected = 'true';
+    } else {
+      // If action toolbar isn't created yet by Gmail, check for the actions td cell
+      const actionCell = row.querySelector('td.yX, td.bq9, td.a4y, td.xY');
+      if (actionCell) {
+        actionCell.appendChild(actionItem);
+        row.dataset.mailflowInjected = 'true';
+      }
+    }
+  }
+
+  function scanEmailRows() {
+    const rows = document.querySelectorAll('tr.zA, tr[role="row"]');
+    rows.forEach(row => {
+      // Check if it is a valid email row containing subject/sender elements
+      if (row.querySelector('.yP, .zF, .bog, .bqe, .y6') && !row.dataset.mailflowInjected) {
+        injectScanButtonIntoRow(row);
+      }
+    });
+  }
+
+  /**
+   * =========================================================================
    * OBSERVER & INITIALIZATION
    * =========================================================================
    */
 
+  function handleMutations() {
+    // Re-inject sidebar if removed
+    if (!document.getElementById('mailflow-sidebar-nav-item')) {
+      injectSidebarItem();
+    }
+
+    // Debounced scan for email rows
+    if (scanDebounceTimer) clearTimeout(scanDebounceTimer);
+    scanDebounceTimer = setTimeout(() => {
+      scanEmailRows();
+    }, 100);
+  }
+
   function init() {
     injectSidebarItem();
+    scanEmailRows();
 
     if (observer) observer.disconnect();
 
-    observer = new MutationObserver((mutations) => {
-      // Re-inject sidebar if removed during Gmail route switches
-      if (!document.getElementById('mailflow-sidebar-nav-item')) {
-        injectSidebarItem();
-      }
+    observer = new MutationObserver(() => {
+      handleMutations();
     });
 
     observer.observe(document.body, {
@@ -298,7 +521,6 @@
     });
   }
 
-  // Run on page load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
