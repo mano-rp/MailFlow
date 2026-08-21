@@ -22,10 +22,14 @@
   const moderateThreats = new Map();
   const restoredThreatIds = new Set();
 
+  // Zero-Trust Pre-Open Shield Verdict Cache
+  const SCANNED_CACHE = new Map(); // key = `${sender}:::${subject}`, value = scanResultObject
+
   let currentSettings = {
     showInlineRows: true,
     autoScan: true,
     autoForwardAdmin: false,
+    mf_pre_open_shield: true,
   };
 
   // SVG Icons
@@ -1240,8 +1244,82 @@
         if (row && btn) {
           handleScanClick(row, btn, e);
         }
+        return;
       }
+
+      // 3. Pre-Open Threat Interception Shield: Intercept clicks on email rows before opening
+      if (e.target.closest(
+        '#mailflow-interception-overlay, #mailflow-placeholder-view, #mailflow-aim-wrapper, ' +
+        '.mailflow-row-action-item, .mailflow-scan-btn, .mailflow-toast, ' +
+        '.T-Jo, .yX, .oZ-jc, .bi4, .y2, .bqe, .bq4, .bq8, .a4y, input[type="checkbox"]'
+      )) {
+        return;
+      }
+
+      const row = e.target.closest('tr.zA, .zA');
+      if (!row) return;
+
+      if (!currentSettings.mf_pre_open_shield) return;
+
+      const { sender, subject, snippet, dateStr } = extractRowMetadata(row);
+      if (!sender && !subject) return;
+
+      const cached = getScannedCache(sender, subject);
+
+      if (cached) {
+        if (cached.tier === 'low') {
+          return; // Verified clean, allow direct opening
+        }
+
+        if (cached.userAcknowledged) {
+          queueInThreadBanner(cached);
+          return; // User acknowledged, allow opening with warning
+        }
+
+        // Flagged threat not yet acknowledged -> intercept and show sandbox
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        openInterceptionShield(row, { sender, subject, snippet, dateStr }, cached);
+        return;
+      }
+
+      // Unscanned email -> intercept and scan in pre-open sandbox
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      openInterceptionShield(row, { sender, subject, snippet, dateStr }, null);
     }, { capture: true });
+  }
+
+  function getCacheKey(sender, subject) {
+    return `${(sender || '').toLowerCase().trim()}:::${(subject || '').toLowerCase().trim()}`;
+  }
+
+  function getScannedCache(sender, subject) {
+    const key = getCacheKey(sender, subject);
+    if (SCANNED_CACHE.has(key)) {
+      return SCANNED_CACHE.get(key);
+    }
+    const matched = findMatchedThreat(sender, subject);
+    if (matched) {
+      return {
+        ...matched,
+        userAcknowledged: false,
+        isDefanged: false,
+      };
+    }
+    return null;
+  }
+
+  function setScannedCache(sender, subject, result) {
+    const key = getCacheKey(sender, subject);
+    SCANNED_CACHE.set(key, {
+      ...result,
+      sender,
+      subject,
+      timestamp: Date.now()
+    });
   }
 
   /**
