@@ -8,7 +8,6 @@
 
   const BACKEND_URL = 'http://localhost:8000';
   const POLLING_INTERVAL_MS = 2500;
-  const CAPITAL_PER_HIGH_RISK_USD = 15000;
   const PRIMARY_EXTENSION_USER = 'nithin@acme-corp.com';
 
   // Demo Authentication Constants
@@ -22,6 +21,7 @@
   const state = {
     isAuthenticated: sessionStorage.getItem(AUTH_CONFIG.STORAGE_KEY) === 'true',
     threats: [],
+    purgedThreatIds: new Set(JSON.parse(localStorage.getItem('mailflow_purged_ids') || '[]')),
     activeFilter: 'all',
     activeUserFilter: 'all',
     searchQuery: '',
@@ -54,7 +54,6 @@
     kpiTotalScans: document.getElementById('kpi-total-scans'),
     kpiHighThreats: document.getElementById('kpi-high-threats'),
     kpiModerateThreats: document.getElementById('kpi-moderate-threats'),
-    kpiCapitalSaved: document.getElementById('kpi-capital-saved'),
     filterTabs: document.querySelectorAll('.filter-tab'),
     userFilterSelect: document.getElementById('user-filter-select'),
     countAll: document.getElementById('count-all'),
@@ -356,11 +355,24 @@
   }
 
   function clearThreats() {
+    // Collect all IDs to mark as purged so polling doesn't immediately restore them
+    state.threats.forEach(t => {
+      state.purgedThreatIds.add(t.id);
+      if (state.isBackendOnline) {
+        fetch(`${BACKEND_URL}/api/threats/restore`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: t.id })
+        }).catch(() => {});
+      }
+    });
+
+    localStorage.setItem('mailflow_purged_ids', JSON.stringify(Array.from(state.purgedThreatIds)));
     state.threats = [];
     state.expandedThreatIds.clear();
     updateKPIMetrics();
     renderThreatTable();
-    showToast('Threat ledger cleared', 'info');
+    showToast('Threat ledger cleared and unquarantined in backend', 'info');
   }
 
   /**
@@ -418,6 +430,11 @@
 
         let stateChanged = false;
         incoming.forEach(inc => {
+          // If this threat was explicitly purged/deleted by admin, skip it
+          if (state.purgedThreatIds.has(inc.id)) {
+            return;
+          }
+
           // Tag incoming scans as primary extension workstation items
           const formatted = {
             ...inc,
@@ -478,11 +495,28 @@
 
     updateKPIMetrics();
     renderThreatTable();
-    showToast(`Restored to ${threat.recipient} inbox`, 'success');
+    showToast(`Restored to ${threat.recipient} inbox & unquarantined in backend`, 'success');
   }
 
   function purgeThreat(threatId) {
     if (!threatId) return;
+
+    // 1. Trigger deletion in backend
+    try {
+      if (state.isBackendOnline) {
+        fetch(`${BACKEND_URL}/api/threats/restore`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: threatId })
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('[MailFlow Dashboard] Purge backend sync err:', e);
+    }
+
+    // 2. Persist to purged set so polling does not re-add it
+    state.purgedThreatIds.add(threatId);
+    localStorage.setItem('mailflow_purged_ids', JSON.stringify(Array.from(state.purgedThreatIds)));
 
     const row = DOM.tableBody.querySelector(`tr[data-id="${threatId}"]`);
     if (row) {
@@ -494,7 +528,7 @@
       state.expandedThreatIds.delete(threatId);
       updateKPIMetrics();
       renderThreatTable();
-      showToast('Threat record purged', 'info');
+      showToast('Threat deleted from backend and security ledger', 'info');
     }, 180);
   }
 
@@ -568,12 +602,10 @@
     const highThreats = state.threats.filter(t => t.tier === 'high').length;
     const moderateThreats = state.threats.filter(t => t.tier === 'moderate').length;
     const lowThreats = state.threats.filter(t => t.tier === 'low').length;
-    const capitalSaved = highThreats * CAPITAL_PER_HIGH_RISK_USD;
 
     if (DOM.kpiTotalScans) DOM.kpiTotalScans.textContent = totalScans.toLocaleString();
     if (DOM.kpiHighThreats) DOM.kpiHighThreats.textContent = highThreats.toLocaleString();
     if (DOM.kpiModerateThreats) DOM.kpiModerateThreats.textContent = moderateThreats.toLocaleString();
-    if (DOM.kpiCapitalSaved) DOM.kpiCapitalSaved.textContent = `$${capitalSaved.toLocaleString()}`;
 
     if (DOM.countAll) DOM.countAll.textContent = totalScans;
     if (DOM.countHigh) DOM.countHigh.textContent = highThreats;
