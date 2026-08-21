@@ -11,8 +11,16 @@
   const CAPITAL_PER_HIGH_RISK_USD = 15000;
   const PRIMARY_EXTENSION_USER = 'nithin@acme-corp.com';
 
+  // Demo Authentication Constants
+  const AUTH_CONFIG = {
+    EMAIL: 'admin@mailflow',
+    PASSWORD: '1234',
+    STORAGE_KEY: 'mailflow_auth',
+  };
+
   // State Management
   const state = {
+    isAuthenticated: sessionStorage.getItem(AUTH_CONFIG.STORAGE_KEY) === 'true',
     threats: [],
     activeFilter: 'all',
     activeUserFilter: 'all',
@@ -26,6 +34,17 @@
   // DOM Elements Cache
   const DOM = {
     html: document.documentElement,
+    authView: document.getElementById('auth-view'),
+    dashboardView: document.getElementById('dashboard-view'),
+    authForm: document.getElementById('auth-form'),
+    authEmail: document.getElementById('auth-email'),
+    authPassword: document.getElementById('auth-password'),
+    authError: document.getElementById('auth-error'),
+    authErrorText: document.getElementById('auth-error-text'),
+    btnDemoAutologin: document.getElementById('btn-demo-autologin'),
+    btnAuthThemeToggle: document.getElementById('btn-auth-theme-toggle'),
+    authThemeIcon: document.getElementById('auth-theme-icon'),
+    btnLogout: document.getElementById('btn-logout'),
     themeToggleBtn: document.getElementById('btn-theme-toggle'),
     themeIcon: document.getElementById('theme-icon'),
     backendStatusBadge: document.getElementById('backend-status-badge'),
@@ -52,6 +71,89 @@
     policyToggles: document.querySelectorAll('.policy-toggle'),
   };
 
+  let pollingTimer = null;
+
+  /**
+   * --------------------------------------------------------------------------
+   * AUTHENTICATION & SESSION GATE
+   * --------------------------------------------------------------------------
+   */
+  function checkAuthState() {
+    state.isAuthenticated = sessionStorage.getItem(AUTH_CONFIG.STORAGE_KEY) === 'true';
+
+    if (state.isAuthenticated) {
+      // Show Dashboard View
+      if (DOM.authView) DOM.authView.classList.add('hidden');
+      if (DOM.dashboardView) {
+        DOM.dashboardView.classList.remove('hidden');
+        DOM.dashboardView.classList.add('flex');
+      }
+
+      updateKPIMetrics();
+      renderThreatTable();
+      fetchLiveThreats();
+
+      // Start Polling Loop
+      if (!pollingTimer) {
+        pollingTimer = setInterval(fetchLiveThreats, POLLING_INTERVAL_MS);
+      }
+    } else {
+      // Show Auth Gate View
+      if (DOM.authView) DOM.authView.classList.remove('hidden');
+      if (DOM.dashboardView) {
+        DOM.dashboardView.classList.add('hidden');
+        DOM.dashboardView.classList.remove('flex');
+      }
+
+      if (pollingTimer) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+      }
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function handleAuthSubmit(e) {
+    if (e) e.preventDefault();
+
+    const email = (DOM.authEmail?.value || '').trim();
+    const password = (DOM.authPassword?.value || '').trim();
+
+    if (email === AUTH_CONFIG.EMAIL && password === AUTH_CONFIG.PASSWORD) {
+      if (DOM.authError) DOM.authError.classList.add('hidden');
+      sessionStorage.setItem(AUTH_CONFIG.STORAGE_KEY, 'true');
+      checkAuthState();
+      showToast('Authenticated as SME Fleet Administrator', 'success');
+    } else {
+      if (DOM.authError) {
+        DOM.authError.classList.remove('hidden');
+        if (DOM.authErrorText) {
+          DOM.authErrorText.textContent = 'Invalid credentials. Hint: admin@mailflow / 1234';
+        }
+      }
+      if (DOM.authPassword) {
+        DOM.authPassword.value = '';
+        DOM.authPassword.focus();
+      }
+    }
+  }
+
+  function handleDemoAutoLogin() {
+    if (DOM.authEmail) DOM.authEmail.value = AUTH_CONFIG.EMAIL;
+    if (DOM.authPassword) DOM.authPassword.value = AUTH_CONFIG.PASSWORD;
+    handleAuthSubmit();
+  }
+
+  function handleLogout() {
+    sessionStorage.removeItem(AUTH_CONFIG.STORAGE_KEY);
+    state.isAuthenticated = false;
+    if (DOM.authPassword) DOM.authPassword.value = '';
+    if (DOM.authError) DOM.authError.classList.add('hidden');
+    checkAuthState();
+    showToast('Signed out of Command Center', 'info');
+  }
+
   /**
    * --------------------------------------------------------------------------
    * THEME MANAGEMENT
@@ -65,10 +167,12 @@
       DOM.html.classList.add('dark');
       DOM.html.classList.remove('light');
       if (DOM.themeIcon) DOM.themeIcon.setAttribute('data-lucide', 'sun');
+      if (DOM.authThemeIcon) DOM.authThemeIcon.setAttribute('data-lucide', 'sun');
     } else {
       DOM.html.classList.remove('dark');
       DOM.html.classList.add('light');
       if (DOM.themeIcon) DOM.themeIcon.setAttribute('data-lucide', 'moon');
+      if (DOM.authThemeIcon) DOM.authThemeIcon.setAttribute('data-lucide', 'moon');
     }
 
     if (window.lucide) {
@@ -291,6 +395,8 @@
   }
 
   async function fetchLiveThreats() {
+    if (!state.isAuthenticated) return;
+
     await checkBackendPing();
 
     if (!state.isBackendOnline) return;
@@ -650,14 +756,14 @@
         <!-- Actions -->
         <td class="py-2.5 px-4 align-top text-right whitespace-nowrap space-x-1">
           ${isHigh ? `
-            <button class="btn-restore px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 transition-all" data-id="${escapeHtml(t.id)}" title="Restore to Inbox">
+            <button class="btn-restore px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 transition-all cursor-pointer" data-id="${escapeHtml(t.id)}" title="Restore to Inbox">
               Restore
             </button>
           ` : ''}
-          <button class="btn-purge p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all" data-id="${escapeHtml(t.id)}" title="Purge Record">
+          <button class="btn-purge p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer" data-id="${escapeHtml(t.id)}" title="Purge Record">
             <i data-lucide="trash" class="w-3.5 h-3.5"></i>
           </button>
-          <button class="btn-toggle-drawer p-1 rounded text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all" data-id="${escapeHtml(t.id)}" title="Toggle Heuristic Details">
+          <button class="btn-toggle-drawer p-1 rounded text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer" data-id="${escapeHtml(t.id)}" title="Toggle Heuristic Details">
             <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
           </button>
         </td>
@@ -716,20 +822,23 @@
     restoreThreat,
     purgeThreat,
     toggleThreatDrawer,
+    handleAuthSubmit,
+    handleDemoAutoLogin,
+    handleLogout,
   };
 
   document.addEventListener('DOMContentLoaded', () => {
     applyTheme(state.theme);
     initPolicies();
     
-    // Start with a clean state as requested
-    updateKPIMetrics();
-    renderThreatTable();
-    
-    // Poll live threats from local backend
-    fetchLiveThreats();
+    // Check initial auth gate
+    checkAuthState();
 
     // Event Listeners
+    if (DOM.authForm) DOM.authForm.addEventListener('submit', handleAuthSubmit);
+    if (DOM.btnDemoAutologin) DOM.btnDemoAutologin.addEventListener('click', handleDemoAutoLogin);
+    if (DOM.btnLogout) DOM.btnLogout.addEventListener('click', handleLogout);
+    if (DOM.btnAuthThemeToggle) DOM.btnAuthThemeToggle.addEventListener('click', toggleTheme);
     if (DOM.themeToggleBtn) DOM.themeToggleBtn.addEventListener('click', toggleTheme);
     if (DOM.manualRefreshBtn) DOM.manualRefreshBtn.addEventListener('click', fetchLiveThreats);
     if (DOM.seedThreatsBtn) DOM.seedThreatsBtn.addEventListener('click', seedDemoThreats);
@@ -772,9 +881,6 @@
         }
       });
     }
-
-    // Start background polling loop
-    setInterval(fetchLiveThreats, POLLING_INTERVAL_MS);
   });
 
 })();
