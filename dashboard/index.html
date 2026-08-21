@@ -14,13 +14,11 @@
         extend: {
           colors: {
             brand: {
-              50: '#eff6ff',
-              100: '#dbeafe',
-              500: '#3b82f6',
-              600: '#2563eb',
-              700: '#1d4ed8',
-              800: '#1e40af',
-              900: '#1e3a8a',
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              500: '#0f172a',
+              600: '#020617',
+              700: '#020617',
             }
           },
           fontFamily: {
@@ -38,170 +36,154 @@
   <!-- Custom Dashboard Styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen font-sans antialiased transition-colors duration-200 selection:bg-brand-500 selection:text-white">
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen font-sans antialiased transition-colors duration-150 selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-100 dark:selection:text-zinc-900">
 
   <!-- Main App Shell -->
   <div class="flex flex-col min-h-screen">
     
     <!-- Top Header -->
-    <header class="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 transition-colors">
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 transition-colors">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         <!-- Left: Brand & Fleet Node Indicator -->
-        <div class="flex items-center gap-3.5">
-          <div class="w-9 h-9 rounded-xl bg-brand-600 dark:bg-brand-500 flex items-center justify-center text-white shadow-sm shadow-brand-500/20">
-            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center text-white dark:text-zinc-900 shadow-sm">
+            <i data-lucide="shield" class="w-4 h-4"></i>
           </div>
           <div>
             <div class="flex items-center gap-2">
-              <span class="font-bold text-base tracking-tight text-zinc-900 dark:text-white">MailFlow Fleet Command</span>
-              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+              <span class="font-semibold text-sm tracking-tight text-zinc-900 dark:text-white">MailFlow Fleet Command</span>
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                 @acme-corp.com
               </span>
             </div>
-            <p class="text-xs text-zinc-500 dark:text-zinc-400">Enterprise SME Autonomous Threat Triage</p>
+            <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Autonomous SME Security & Triage Ledger</p>
           </div>
         </div>
 
         <!-- Right: Server Status, Actions & Theme Toggle -->
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-2">
           
           <!-- Live API Pulse Badge -->
-          <div id="backend-status-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all">
+          <div id="backend-status-badge" class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all">
             <span id="backend-status-dot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             <span id="backend-status-text" class="text-zinc-700 dark:text-zinc-300">Checking API (:8000)...</span>
           </div>
 
           <!-- Manual Refresh Button -->
-          <button id="btn-manual-refresh" class="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Refresh Live Data" aria-label="Refresh Data">
-            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          <button id="btn-manual-refresh" class="p-1.5 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Refresh Live Data" aria-label="Refresh Data">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
           </button>
 
           <!-- Theme Switcher -->
-          <button id="btn-theme-toggle" class="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Toggle Theme" aria-label="Toggle Theme">
-            <i id="theme-icon" data-lucide="moon" class="w-4 h-4"></i>
+          <button id="btn-theme-toggle" class="p-1.5 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Toggle Theme" aria-label="Toggle Theme">
+            <i id="theme-icon" data-lucide="moon" class="w-3.5 h-3.5"></i>
           </button>
         </div>
       </div>
     </header>
 
     <!-- Main Workspace -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       
-      <!-- KPI Metric Cards Grid -->
-      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-grid">
+      <!-- Fleet KPI Metric Cards Grid -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5" id="kpi-grid">
+        
         <!-- Metric 1: Total Processed -->
-        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
-          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-3">
-            <span class="text-xs font-semibold uppercase tracking-wider">Scans Evaluated</span>
-            <div class="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-brand-600 dark:text-brand-400">
-              <i data-lucide="mail-search" class="w-4 h-4"></i>
-            </div>
+        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-lg p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-2">
+            <span class="text-[11px] font-medium uppercase tracking-wider">Messages Evaluated</span>
+            <i data-lucide="mail" class="w-3.5 h-3.5 text-zinc-400"></i>
           </div>
           <div class="flex items-baseline gap-2">
-            <span class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white" id="kpi-total-scans">0</span>
-            <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center">
-              <i data-lucide="activity" class="w-3 h-3 mr-0.5"></i> Live Sync
-            </span>
+            <span class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white font-mono" id="kpi-total-scans">0</span>
+            <span class="text-[11px] text-zinc-500 dark:text-zinc-400">Live Ingest</span>
           </div>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Multi-step heuristic throughput</p>
         </div>
 
         <!-- Metric 2: Quarantined High Threats -->
-        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
-          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-3">
-            <span class="text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-400">Quarantined (High)</span>
-            <div class="p-2 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400">
-              <i data-lucide="shield-x" class="w-4 h-4"></i>
-            </div>
+        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-lg p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-2">
+            <span class="text-[11px] font-medium uppercase tracking-wider text-red-600 dark:text-red-400">Quarantined (High)</span>
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
           </div>
           <div class="flex items-baseline gap-2">
-            <span class="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400" id="kpi-high-threats">0</span>
-            <span class="text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 px-1.5 py-0.5 rounded">
-              Critical
-            </span>
+            <span class="text-xl font-bold tracking-tight text-red-600 dark:text-red-400 font-mono" id="kpi-high-threats">0</span>
+            <span class="text-[11px] text-zinc-500 dark:text-zinc-400">Isolated</span>
           </div>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Isolated from workforce inboxes</p>
         </div>
 
         <!-- Metric 3: Watchlist Moderate Threats -->
-        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
-          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-3">
-            <span class="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Watchlist (Moderate)</span>
-            <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
-              <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-            </div>
+        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-lg p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-2">
+            <span class="text-[11px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">Watchlist (Moderate)</span>
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
           </div>
           <div class="flex items-baseline gap-2">
-            <span class="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400" id="kpi-moderate-threats">0</span>
-            <span class="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
-              Triage
-            </span>
+            <span class="text-xl font-bold tracking-tight text-amber-600 dark:text-amber-400 font-mono" id="kpi-moderate-threats">0</span>
+            <span class="text-[11px] text-zinc-500 dark:text-zinc-400">Flagged</span>
           </div>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Flagged for employee caution</p>
         </div>
 
         <!-- Metric 4: Capital Exposure Prevented -->
-        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
-          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-3">
-            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Exposure Prevented</span>
-            <div class="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
-              <i data-lucide="badge-dollar-sign" class="w-4 h-4"></i>
-            </div>
+        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-lg p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-2">
+            <span class="text-[11px] font-medium uppercase tracking-wider">Capital Protected</span>
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-zinc-400"></i>
           </div>
           <div class="flex items-baseline gap-2">
-            <span class="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400" id="kpi-capital-saved">$0</span>
-            <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Est. ROI</span>
+            <span class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white font-mono" id="kpi-capital-saved">$0</span>
+            <span class="text-[11px] text-zinc-500 dark:text-zinc-400">Est. Exposure</span>
           </div>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Based on avg SME BEC claim cost</p>
         </div>
+
       </section>
 
       <!-- SME Automated Defense Policies Section -->
-      <section class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all">
-        <div class="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-          <div class="flex items-center gap-2.5">
-            <i data-lucide="sliders" class="w-4 h-4 text-brand-600 dark:text-brand-400"></i>
-            <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Autonomous SME Defense Rules</h2>
+      <section class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all">
+        <div class="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400"></i>
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Automated Fleet Defense Policies</h2>
           </div>
-          <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Active Rule Engine v0.1.0</span>
+          <span class="text-[11px] text-zinc-400">Heuristic Engine v0.1.0</span>
         </div>
-        <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
+        <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
           
           <!-- Policy 1 -->
-          <div class="flex items-start justify-between gap-3 p-3.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800">
+          <div class="flex items-center justify-between gap-3 p-3 rounded bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800">
             <div>
-              <p class="font-semibold text-zinc-900 dark:text-white">Auto-Quarantine Bank Updates</p>
-              <p class="text-zinc-500 dark:text-zinc-400 mt-0.5">Isolate emails requesting routing or IBAN modifications</p>
+              <p class="font-medium text-zinc-900 dark:text-white">Auto-Quarantine Bank Updates</p>
+              <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Isolate routing / IBAN modifications</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
               <input type="checkbox" checked class="sr-only peer policy-toggle" data-policy="bank-rules">
-              <div class="w-9 h-5 bg-zinc-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+              <div class="w-8 h-4 bg-zinc-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-zinc-900 dark:peer-checked:bg-zinc-100 dark:peer-checked:after:bg-zinc-900"></div>
             </label>
           </div>
 
           <!-- Policy 2 -->
-          <div class="flex items-start justify-between gap-3 p-3.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800">
+          <div class="flex items-center justify-between gap-3 p-3 rounded bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800">
             <div>
-              <p class="font-semibold text-zinc-900 dark:text-white">Executive Homoglyph Lock</p>
-              <p class="text-zinc-500 dark:text-zinc-400 mt-0.5">Strict typosquatting match on leadership display names</p>
+              <p class="font-medium text-zinc-900 dark:text-white">Executive Homoglyph Lock</p>
+              <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Strict typosquatting match on leaders</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
               <input type="checkbox" checked class="sr-only peer policy-toggle" data-policy="homoglyph-lock">
-              <div class="w-9 h-5 bg-zinc-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+              <div class="w-8 h-4 bg-zinc-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-zinc-900 dark:peer-checked:bg-zinc-100 dark:peer-checked:after:bg-zinc-900"></div>
             </label>
           </div>
 
           <!-- Policy 3 -->
-          <div class="flex items-start justify-between gap-3 p-3.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800">
+          <div class="flex items-center justify-between gap-3 p-3 rounded bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800">
             <div>
-              <p class="font-semibold text-zinc-900 dark:text-white">Quishing & Userinfo Traps</p>
-              <p class="text-zinc-500 dark:text-zinc-400 mt-0.5">Intercept URL userinfo masquerades & QR login prompts</p>
+              <p class="font-medium text-zinc-900 dark:text-white">Quishing & Userinfo Traps</p>
+              <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Intercept URL @ spoofing & QR login traps</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
               <input type="checkbox" checked class="sr-only peer policy-toggle" data-policy="quishing-rules">
-              <div class="w-9 h-5 bg-zinc-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+              <div class="w-8 h-4 bg-zinc-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-zinc-900 dark:peer-checked:bg-zinc-100 dark:peer-checked:after:bg-zinc-900"></div>
             </label>
           </div>
 
@@ -209,43 +191,60 @@
       </section>
 
       <!-- Threat Audit Ledger Table Container -->
-      <section class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all">
+      <section class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all">
         
         <!-- Table Toolbar & Filter Bar -->
-        <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="p-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
           
-          <!-- Left: Filter Tabs -->
-          <div class="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-x-auto text-xs font-medium">
-            <button class="filter-tab active px-3 py-1.5 rounded-md text-zinc-900 dark:text-white bg-white dark:bg-zinc-700 shadow-sm transition-all" data-filter="all">
-              All Events <span id="count-all" class="ml-1 px-1.5 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-600 text-[10px]">0</span>
-            </button>
-            <button class="filter-tab px-3 py-1.5 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all" data-filter="high">
-              Quarantined <span id="count-high" class="ml-1 px-1.5 py-0.2 rounded-full bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-[10px]">0</span>
-            </button>
-            <button class="filter-tab px-3 py-1.5 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all" data-filter="moderate">
-              Watchlist <span id="count-moderate" class="ml-1 px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 text-[10px]">0</span>
-            </button>
-            <button class="filter-tab px-3 py-1.5 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all" data-filter="low">
-              Verified Clean <span id="count-low" class="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-[10px]">0</span>
-            </button>
+          <!-- Left: Filter Tabs & User Scope -->
+          <div class="flex flex-wrap items-center gap-2">
+            
+            <!-- Tier Filter Pills -->
+            <div class="flex items-center gap-1 p-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-md border border-zinc-200 dark:border-zinc-700 text-xs font-medium">
+              <button class="filter-tab active px-2.5 py-1 rounded text-zinc-900 dark:text-white transition-all" data-filter="all">
+                All <span id="count-all" class="ml-1 px-1.5 py-0.2 rounded bg-zinc-200 dark:bg-zinc-700 text-[10px] font-mono">0</span>
+              </button>
+              <button class="filter-tab px-2.5 py-1 rounded text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all" data-filter="high">
+                Quarantined <span id="count-high" class="ml-1 px-1.5 py-0.2 rounded bg-zinc-200 dark:bg-zinc-700 text-[10px] font-mono">0</span>
+              </button>
+              <button class="filter-tab px-2.5 py-1 rounded text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all" data-filter="moderate">
+                Watchlist <span id="count-moderate" class="ml-1 px-1.5 py-0.2 rounded bg-zinc-200 dark:bg-zinc-700 text-[10px] font-mono">0</span>
+              </button>
+              <button class="filter-tab px-2.5 py-1 rounded text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all" data-filter="low">
+                Clean <span id="count-low" class="ml-1 px-1.5 py-0.2 rounded bg-zinc-200 dark:bg-zinc-700 text-[10px] font-mono">0</span>
+              </button>
+            </div>
+
+            <!-- User Filter Selector -->
+            <select id="user-filter-select" class="text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-1 text-zinc-700 dark:text-zinc-300 focus:outline-none">
+              <option value="all">All Employee Inboxes</option>
+              <option value="nithin@acme-corp.com">nithin@acme-corp.com (Active Extension)</option>
+              <option value="sarah.cfo@acme-corp.com">sarah.cfo@acme-corp.com (Finance)</option>
+              <option value="alex.dev@acme-corp.com">alex.dev@acme-corp.com (Engineering)</option>
+            </select>
           </div>
 
           <!-- Right: Search Box & Actions -->
-          <div class="flex items-center gap-2.5">
-            <div class="relative flex-1 sm:w-64">
-              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
-              <input type="text" id="threat-search-input" placeholder="Search sender, subject, user..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 text-zinc-900 dark:text-white transition-all">
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1 sm:w-56">
+              <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400"></i>
+              <input type="text" id="threat-search-input" placeholder="Search incidents..." class="w-full pl-8 pr-2.5 py-1 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-900 dark:text-white transition-all">
             </div>
 
             <!-- Demo Seeder Action Button -->
-            <button id="btn-seed-threats" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800 hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-all">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <button id="btn-seed-threats" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all" title="Seed Demo Feed">
+              <i data-lucide="layers" class="w-3 h-3"></i>
               <span>Seed Demo Feed</span>
             </button>
 
+            <!-- Clear Button -->
+            <button id="btn-clear-threats" class="p-1 rounded-md text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Clear Ledger Items">
+              <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+            </button>
+
             <!-- Export Button -->
-            <button id="btn-export-log" class="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Export Ledger JSON">
-              <i data-lucide="download" class="w-4 h-4"></i>
+            <button id="btn-export-log" class="p-1 rounded-md text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Export Ledger JSON">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
             </button>
           </div>
         </div>
@@ -254,29 +253,29 @@
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse" id="threat-table">
             <thead>
-              <tr class="bg-zinc-50/80 dark:bg-zinc-800/40 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider border-b border-zinc-200 dark:border-zinc-800">
-                <th class="py-3 px-4">Time & Recipient</th>
-                <th class="py-3 px-4">Sender & Threat Subject</th>
-                <th class="py-3 px-4">Classification</th>
-                <th class="py-3 px-4">Composite Score</th>
-                <th class="py-3 px-4">Autonomous Action</th>
-                <th class="py-3 px-4 text-right">Actions</th>
+              <tr class="bg-zinc-50 dark:bg-zinc-800/40 text-[10.5px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider border-b border-zinc-200 dark:border-zinc-800">
+                <th class="py-2.5 px-4">Employee & Timestamp</th>
+                <th class="py-2.5 px-4">Sender & Threat Subject</th>
+                <th class="py-2.5 px-4">Classification</th>
+                <th class="py-2.5 px-4">Score</th>
+                <th class="py-2.5 px-4">Status</th>
+                <th class="py-2.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="threat-table-body" class="divide-y divide-zinc-200 dark:divide-zinc-800 text-xs">
-              <!-- Rendered dynamically by app.js -->
+              <!-- Dynamically rendered by app.js -->
             </tbody>
           </table>
         </div>
 
         <!-- Empty State Container -->
-        <div id="table-empty-state" class="hidden py-16 px-4 text-center">
-          <div class="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 mx-auto flex items-center justify-center mb-3">
-            <i data-lucide="shield-check" class="w-6 h-6"></i>
+        <div id="table-empty-state" class="py-16 px-4 text-center">
+          <div class="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 mx-auto flex items-center justify-center mb-2.5">
+            <i data-lucide="inbox" class="w-5 h-5"></i>
           </div>
-          <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">No security incidents found</h3>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
-            Your fleet is currently clean. You can click "Seed Demo Feed" above to preview real-world attack evaluations.
+          <h3 class="text-xs font-semibold text-zinc-900 dark:text-white">Threat Ledger is Empty</h3>
+          <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
+            Forward emails from the Gmail extension or click "Seed Demo Feed" above to preview attack triage.
           </p>
         </div>
 
@@ -285,8 +284,8 @@
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-zinc-200 dark:border-zinc-800 py-4 px-6 text-center text-xs text-zinc-400 dark:text-zinc-600">
-      MailFlow Fleet Command © 2026 — SME Threat Defense Platform & Heuristic Core
+    <footer class="border-t border-zinc-200 dark:border-zinc-800 py-3.5 px-6 text-center text-[11px] text-zinc-400 dark:text-zinc-600">
+      MailFlow Fleet Command © 2026 — Isolated SME Threat Defense Platform
     </footer>
 
   </div>

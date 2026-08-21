@@ -122,11 +122,11 @@
 }
 
 .kpi-card:hover::before {
-  background: #3b82f6;
+  background: #18181b;
 }
 
 .dark .kpi-card:hover::before {
-  background: #60a5fa;
+  background: #e4e4e7;
 }
 
 /* Code block highlight */

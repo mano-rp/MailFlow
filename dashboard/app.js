@@ -1,19 +1,21 @@
 /**
  * MailFlow SME Admin Dashboard — Fleet Command Engine
- * Real-time heuristic event consumer, KPI calculator, and threat mitigation hub.
+ * Real-time heuristic event consumer, multi-user inbox partitioner, and triage hub.
  */
 
 (function () {
   'use strict';
 
   const BACKEND_URL = 'http://localhost:8000';
-  const POLLING_INTERVAL_MS = 3000;
+  const POLLING_INTERVAL_MS = 2500;
   const CAPITAL_PER_HIGH_RISK_USD = 15000;
+  const PRIMARY_EXTENSION_USER = 'nithin@acme-corp.com';
 
   // State Management
   const state = {
     threats: [],
     activeFilter: 'all',
+    activeUserFilter: 'all',
     searchQuery: '',
     expandedThreatIds: new Set(),
     isBackendOnline: false,
@@ -35,12 +37,14 @@
     kpiModerateThreats: document.getElementById('kpi-moderate-threats'),
     kpiCapitalSaved: document.getElementById('kpi-capital-saved'),
     filterTabs: document.querySelectorAll('.filter-tab'),
+    userFilterSelect: document.getElementById('user-filter-select'),
     countAll: document.getElementById('count-all'),
     countHigh: document.getElementById('count-high'),
     countModerate: document.getElementById('count-moderate'),
     countLow: document.getElementById('count-low'),
     searchInput: document.getElementById('threat-search-input'),
     seedThreatsBtn: document.getElementById('btn-seed-threats'),
+    clearThreatsBtn: document.getElementById('btn-clear-threats'),
     exportLogBtn: document.getElementById('btn-export-log'),
     tableBody: document.getElementById('threat-table-body'),
     emptyState: document.getElementById('table-empty-state'),
@@ -50,7 +54,7 @@
 
   /**
    * --------------------------------------------------------------------------
-   * THEME & INITIALIZATION
+   * THEME MANAGEMENT
    * --------------------------------------------------------------------------
    */
   function applyTheme(theme) {
@@ -115,20 +119,20 @@
     if (!DOM.toastContainer) return;
 
     const toast = document.createElement('div');
-    toast.className = 'dashboard-toast flex items-center gap-2.5 px-4 py-3 rounded-lg shadow-lg text-xs font-medium border backdrop-blur-md';
+    toast.className = 'dashboard-toast flex items-center gap-2.5 px-3.5 py-2.5 rounded-md shadow-md text-xs font-medium border backdrop-blur-md transition-all';
 
     if (type === 'success') {
-      toast.className += ' bg-emerald-50 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800';
-      toast.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0"></i><span>${escapeHtml(message)}</span>`;
+      toast.className += ' bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-700';
+      toast.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span><span>${escapeHtml(message)}</span>`;
     } else if (type === 'error' || type === 'alert') {
-      toast.className += ' bg-red-50 dark:bg-red-950/90 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800';
-      toast.innerHTML = `<i data-lucide="alert-octagon" class="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0"></i><span>${escapeHtml(message)}</span>`;
+      toast.className += ' bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-700';
+      toast.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></span><span>${escapeHtml(message)}</span>`;
     } else if (type === 'warning') {
-      toast.className += ' bg-amber-50 dark:bg-amber-950/90 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800';
-      toast.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0"></i><span>${escapeHtml(message)}</span>`;
+      toast.className += ' bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-700';
+      toast.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></span><span>${escapeHtml(message)}</span>`;
     } else {
-      toast.className += ' bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700';
-      toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-brand-500 flex-shrink-0"></i><span>${escapeHtml(message)}</span>`;
+      toast.className += ' bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-700';
+      toast.innerHTML = `<span class="w-2 h-2 rounded-full bg-zinc-400 flex-shrink-0"></span><span>${escapeHtml(message)}</span>`;
     }
 
     DOM.toastContainer.appendChild(toast);
@@ -137,20 +141,22 @@
     setTimeout(() => {
       toast.classList.add('hiding');
       setTimeout(() => toast.remove(), 200);
-    }, 4000);
+    }, 3500);
   }
 
   /**
    * --------------------------------------------------------------------------
-   * DEMO DATA SEEDER
+   * DEMO DATA SEEDER (MANUAL INGEST ONLY)
    * --------------------------------------------------------------------------
    */
   const DEMO_SEEDS = [
     {
-      id: 'mf_seed_bec01',
+      id: 'mf_sec_bec01',
+      isLive: false,
       timestamp: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
       sender: 'Sharma Logistics <billing@sharma-invoices.com>',
       recipient: 'sarah.cfo@acme-corp.com',
+      department: 'Finance & Operations',
       subject: 'Re: INV-2291 final notice - updated bank details, action required',
       snippet: 'Dear Sir/Madam, This is the final notice regarding the pending settlement of Rs. 9,85000 against INV-2291. Our earlier current account is temporarily frozen pending an audit, so kindly remit funds to our new IBAN immediately.',
       risk_score: 100,
@@ -158,7 +164,7 @@
       color: 'red',
       threat_type: 'Urgent Financial / BEC Fraud',
       action: 'quarantine_slide',
-      explanation: 'High-risk threat detected (Score 100/100). Flagged for: Bank Account Redirection / IBAN Tampering; Deceptive Audit Migration Pretext; Coercive Final Notice Warning. Quarantined to protect organization capital.',
+      explanation: 'High-risk threat detected (Score 100/100). Flagged for: Bank Account Redirection / IBAN Tampering; Deceptive Audit Migration Pretext; Coercive Final Notice Warning.',
       matched_steps: [
         {
           step_name: 'Financial & Invoice Redirection Check',
@@ -180,44 +186,12 @@
       ]
     },
     {
-      id: 'mf_seed_phish02',
-      timestamp: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-      sender: 'IT Helpdesk <support@it-services.sbs>',
-      recipient: 'nithin@acme-corp.com',
-      subject: 'Action required: mailbox storage full - verify to avoid loss',
-      snippet: 'Dear User, Your mailbox has reached its storage limit. Incoming mail will be rejected until you increase your quota. Verify your account today: https://outlook.office.com:portal@quota-fix.sbs/renew. Login to confirm your account credentials.',
-      risk_score: 100,
-      tier: 'high',
-      color: 'red',
-      threat_type: 'Deceptive URL Spoofing / Phish',
-      action: 'quarantine_slide',
-      explanation: 'High-risk threat detected (Score 100/100). Flagged for: Deceptive URL Userinfo Spoofing (@ syntax masquerade); High-Risk Phishing TLD in Link (.sbs); Mailbox Quota Phishing Lure. Quarantined automatically.',
-      matched_steps: [
-        {
-          step_name: 'Sender / Lookalike Anomaly Check',
-          score: 100.0,
-          matched_rules: [
-            'Deceptive URL Userinfo Spoofing (@ syntax masquerade)',
-            "High-Risk Phishing TLD in Link (flagged: '.sbs')",
-            'Deceptive Credential / Quota Portal Hostname'
-          ]
-        },
-        {
-          step_name: 'Credential Harvesting Check',
-          score: 85.0,
-          matched_rules: [
-            "Mailbox Storage / Quota Phishing Lure (matched: 'mailbox storage full')",
-            "IT Helpdesk / Administrator Impersonation (matched: 'IT Helpdesk')",
-            "Explicit Credential Submission Demand (matched: 'login and confirm')"
-          ]
-        }
-      ]
-    },
-    {
-      id: 'mf_seed_ceo03',
+      id: 'mf_sec_ceo02',
+      isLive: false,
       timestamp: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
       sender: 'Alex Vance (CEO) <ceo@acme-corp.co>',
       recipient: 'alex.dev@acme-corp.com',
+      department: 'Engineering & Infrastructure',
       subject: 'Quick confidential task - need it now',
       snippet: 'Are you at your desk? I need you to handle something for a client urgently and it is strictly confidential - do not discuss with anyone in the team until it is done. Please purchase 5 Apple Gift Cards for a client presentation.',
       risk_score: 80,
@@ -232,96 +206,26 @@
           score: 65.0,
           matched_rules: [
             "Secrecy & Isolation Pretext (matched: 'strictly confidential')",
-            "Executive Impersonation / Availability Bait (matched: 'are you at your desk')",
-            "High Urgency Call-to-Action (matched: 'urgently')"
-          ]
-        },
-        {
-          step_name: 'Financial & Invoice Redirection Check',
-          score: 45.0,
-          matched_rules: [
-            "Gift Card Payment Extortion / BEC Task (matched: 'Apple Gift Cards')"
-          ]
-        }
-      ]
-    },
-    {
-      id: 'mf_seed_mod04',
-      timestamp: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
-      sender: 'CloudScale Billing <accounts@cloudscale.io>',
-      recipient: 'sarah.cfo@acme-corp.com',
-      subject: 'Invoice INV-2291 - updated bank details',
-      snippet: 'Dear Sir, We have shifted our current account due to an internal annual audit. Kindly process the pending payment for INV-2291 of Rs. 4,20,000 to our new account.',
-      risk_score: 70,
-      tier: 'moderate',
-      color: 'yellow',
-      threat_type: 'Unverified Bank Account Update',
-      action: 'flag_warning',
-      explanation: 'Moderate caution advised (Score 70/100). Detected: Bank Account Redirection / IBAN Tampering; Invoice / Billing Vector. Verify sender authenticity before authorizing funds.',
-      matched_steps: [
-        {
-          step_name: 'Financial & Invoice Redirection Check',
-          score: 70.0,
-          matched_rules: [
-            "Bank Account Redirection / IBAN Tampering (matched: 'updated bank details')",
-            "Deceptive Audit / Account Migration Pretext (matched: 'shifted our current account')",
-            "Invoice / Billing Vector (matched: 'Invoice INV-2291')"
-          ]
-        }
-      ]
-    },
-    {
-      id: 'mf_seed_mod05',
-      timestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
-      sender: 'Nithin <nithin@internal-team.org>',
-      recipient: 'nithin@acme-corp.com',
-      subject: 'Quick confidential task - need it now',
-      snippet: 'Are you at your desk? I need you to handle something for a client urgently and it is strictly confidential - do not discuss with anyone in the team until it is done.',
-      risk_score: 65,
-      tier: 'moderate',
-      color: 'yellow',
-      threat_type: 'Executive Urgency Lure',
-      action: 'flag_warning',
-      explanation: 'Moderate caution advised (Score 65/100). Detected: Secrecy & Isolation Pretext; Executive Impersonation / Availability Bait.',
-      matched_steps: [
-        {
-          step_name: 'Urgency & Coercion Check',
-          score: 65.0,
-          matched_rules: [
-            "Secrecy & Isolation Pretext (matched: 'strictly confidential')",
             "Executive Impersonation / Availability Bait (matched: 'are you at your desk')"
           ]
         }
       ]
     },
     {
-      id: 'mf_seed_clean06',
-      timestamp: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
-      sender: 'Amazon Web Services <no-reply@amazon.com>',
-      recipient: 'devops@acme-corp.com',
-      subject: 'Amazon Web Services Invoice [92837102]',
-      snippet: 'Your latest AWS billing statement is now available in the AWS Management Console for account ending in 4920.',
-      risk_score: 0,
-      tier: 'low',
-      color: 'green',
-      threat_type: 'Verified Safe',
-      action: 'verified',
-      explanation: 'Clean (Score 0/100). Authentic sender with zero urgency coercion, payment tampering, or lookalike anomalies detected.',
-      matched_steps: []
-    },
-    {
-      id: 'mf_seed_clean07',
-      timestamp: new Date(Date.now() - 180 * 60 * 1000).toISOString(),
-      sender: 'Frank Andrade and Diana Dovgopol <news@substack.com>',
-      recipient: 'nithin@acme-corp.com',
-      subject: 'Frank Andrade and Diana Dovgopol posted new notes',
-      snippet: 'Read the latest AI articles and curated research notes from Substack creators.',
-      risk_score: 0,
-      tier: 'low',
-      color: 'green',
-      threat_type: 'Verified Safe',
-      action: 'verified',
-      explanation: 'Clean (Score 0/100). Standard publication newsletter with no malicious indicators.',
+      id: 'mf_sec_mod03',
+      isLive: false,
+      timestamp: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
+      sender: 'CloudScale Billing <accounts@cloudscale.io>',
+      recipient: 'sarah.cfo@acme-corp.com',
+      department: 'Finance & Operations',
+      subject: 'Invoice Statement & Updated Banking Terms',
+      snippet: 'Please review the updated routing details and quarterly cloud statement.',
+      risk_score: 70,
+      tier: 'moderate',
+      color: 'yellow',
+      threat_type: 'Unverified Bank Account Update',
+      action: 'flag_warning',
+      explanation: 'Moderate caution advised (Score 70/100). Contains banking modification references.',
       matched_steps: []
     }
   ];
@@ -336,12 +240,17 @@
       }
     });
 
-    // Sort descending by timestamp
-    state.threats.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
     updateKPIMetrics();
     renderThreatTable();
-    showToast(`Seeded ${newCount || DEMO_SEEDS.length} enterprise security incidents into threat ledger`, 'success');
+    showToast(`Added ${newCount || DEMO_SEEDS.length} audited feed entries`, 'success');
+  }
+
+  function clearThreats() {
+    state.threats = [];
+    state.expandedThreatIds.clear();
+    updateKPIMetrics();
+    renderThreatTable();
+    showToast('Threat ledger cleared', 'info');
   }
 
   /**
@@ -362,7 +271,7 @@
       if (res.ok) {
         state.isBackendOnline = true;
         if (DOM.backendStatusDot) {
-          DOM.backendStatusDot.className = 'w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50';
+          DOM.backendStatusDot.className = 'w-2 h-2 rounded-full bg-emerald-500 shadow-sm';
         }
         if (DOM.backendStatusText) {
           DOM.backendStatusText.textContent = 'API Connected (:8000)';
@@ -397,10 +306,22 @@
 
         let stateChanged = false;
         incoming.forEach(inc => {
-          const exists = state.threats.some(t => t.id === inc.id);
-          if (!exists) {
-            state.threats.unshift(inc);
+          // Tag incoming scans as primary extension workstation items
+          const formatted = {
+            ...inc,
+            isLive: true,
+            recipient: inc.recipient || PRIMARY_EXTENSION_USER,
+            department: 'Active Extension Workstation'
+          };
+
+          const existingIdx = state.threats.findIndex(t => t.id === inc.id);
+          if (existingIdx === -1) {
+            // New incoming real scan -> insert at top
+            state.threats.unshift(formatted);
             stateChanged = true;
+          } else {
+            // Update existing if state changed
+            state.threats[existingIdx] = { ...state.threats[existingIdx], ...formatted };
           }
         });
 
@@ -410,7 +331,7 @@
         }
       }
     } catch (err) {
-      console.warn('[MailFlow Dashboard] Threat polling error:', err);
+      console.warn('[MailFlow Dashboard] Polling error:', err);
     }
   }
 
@@ -445,7 +366,7 @@
 
     updateKPIMetrics();
     renderThreatTable();
-    showToast(`Threat restored to ${threat.recipient || 'employee'} inbox`, 'success');
+    showToast(`Restored to ${threat.recipient} inbox`, 'success');
   }
 
   function purgeThreat(threatId) {
@@ -461,7 +382,7 @@
       state.expandedThreatIds.delete(threatId);
       updateKPIMetrics();
       renderThreatTable();
-      showToast('Threat record purged from security ledger', 'info');
+      showToast('Threat record purged', 'info');
     }, 180);
   }
 
@@ -484,14 +405,19 @@
     if (!btn) return;
 
     DOM.filterTabs.forEach(t => {
-      t.classList.remove('active', 'text-zinc-900', 'dark:text-white', 'bg-white', 'dark:bg-zinc-700', 'shadow-sm');
-      t.classList.add('text-zinc-600', 'dark:text-zinc-400');
+      t.classList.remove('active', 'text-zinc-900', 'dark:text-white', 'bg-white', 'dark:bg-zinc-700');
+      t.classList.add('text-zinc-500', 'dark:text-zinc-400');
     });
 
-    btn.classList.add('active', 'text-zinc-900', 'dark:text-white', 'bg-white', 'dark:bg-zinc-700', 'shadow-sm');
-    btn.classList.remove('text-zinc-600', 'dark:text-zinc-400');
+    btn.classList.add('active', 'text-zinc-900', 'dark:text-white', 'bg-white', 'dark:bg-zinc-700');
+    btn.classList.remove('text-zinc-500', 'dark:text-zinc-400');
 
     state.activeFilter = btn.dataset.filter || 'all';
+    renderThreatTable();
+  }
+
+  function handleUserFilterChange(e) {
+    state.activeUserFilter = e.target.value;
     renderThreatTable();
   }
 
@@ -545,7 +471,7 @@
 
   /**
    * --------------------------------------------------------------------------
-   * TABLE RENDERING & ACCORDION DRAWER
+   * TABLE RENDERING WITH USER SEPARATION & SUBTLE MONOCHROME STYLING
    * --------------------------------------------------------------------------
    */
   function escapeHtml(str) {
@@ -570,6 +496,10 @@
     return state.threats.filter(t => {
       // Filter by tier tab
       if (state.activeFilter !== 'all' && t.tier !== state.activeFilter) {
+        return false;
+      }
+      // Filter by user selection
+      if (state.activeUserFilter !== 'all' && t.recipient !== state.activeUserFilter) {
         return false;
       }
       // Filter by search query
@@ -599,148 +529,176 @@
 
     if (DOM.emptyState) DOM.emptyState.classList.add('hidden');
 
-    DOM.tableBody.innerHTML = filtered.map(t => {
-      const isExpanded = state.expandedThreatIds.has(t.id);
-      const isHigh = t.tier === 'high';
-      const isModerate = t.tier === 'moderate';
+    // Separate into real live extension items vs secondary accounts
+    const liveItems = filtered.filter(t => t.isLive !== false);
+    const secondaryItems = filtered.filter(t => t.isLive === false);
 
-      // Badge Styling
-      let badgeClass = 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
-      let dotColor = 'bg-emerald-500';
-      let actionPill = '<span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium"><i data-lucide="check" class="w-3.5 h-3.5"></i> Inbox Safe</span>';
+    // Build grouped row HTML
+    let tableHtml = '';
 
-      if (isHigh) {
-        badgeClass = 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
-        dotColor = 'bg-red-500';
-        actionPill = '<span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-medium"><i data-lucide="shield-x" class="w-3.5 h-3.5"></i> Quarantined (Slide)</span>';
-      } else if (isModerate) {
-        badgeClass = 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
-        dotColor = 'bg-amber-500';
-        actionPill = '<span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium"><i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> Watchlist Flag</span>';
-      }
-
-      // Format Matched Rules list
-      let matchedRulesHtml = '<span class="text-zinc-400 dark:text-zinc-500">No anomaly patterns matched</span>';
-      if (t.matched_steps && t.matched_steps.length) {
-        const rules = [];
-        t.matched_steps.forEach(s => {
-          if (s.matched_rules && s.matched_rules.length) {
-            s.matched_rules.forEach(r => rules.push(r));
-          }
-        });
-        if (rules.length) {
-          matchedRulesHtml = rules.map(r => `
-            <li class="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-              <span class="w-1.5 h-1.5 rounded-full ${isHigh ? 'bg-red-500' : isModerate ? 'bg-amber-500' : 'bg-emerald-500'}"></span>
-              ${escapeHtml(r)}
-            </li>
-          `).join('');
-          matchedRulesHtml = `<ul class="space-y-1">${matchedRulesHtml}</ul>`;
-        }
-      }
-
-      const recipient = t.recipient || 'nithin@acme-corp.com';
-
-      return `
-        <tr class="threat-row hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors" data-id="${escapeHtml(t.id)}">
-          
-          <!-- Time & Recipient -->
-          <td class="py-3 px-4 align-top whitespace-nowrap">
-            <div class="font-medium text-zinc-900 dark:text-white">${escapeHtml(formatTimestamp(t.timestamp))}</div>
-            <div class="inline-flex items-center gap-1 mt-1 text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
-              <i data-lucide="user" class="w-3 h-3 text-zinc-400"></i>
-              ${escapeHtml(recipient)}
-            </div>
-          </td>
-
-          <!-- Sender & Subject -->
-          <td class="py-3 px-4 align-top max-w-xs md:max-w-sm">
-            <div class="font-semibold text-zinc-900 dark:text-white truncate" title="${escapeHtml(t.subject)}">${escapeHtml(t.subject || 'No Subject')}</div>
-            <div class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5" title="${escapeHtml(t.sender)}">${escapeHtml(t.sender || 'Unknown Sender')}</div>
-          </td>
-
-          <!-- Classification Badge -->
-          <td class="py-3 px-4 align-top whitespace-nowrap">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${badgeClass}">
-              <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
-              ${escapeHtml(t.threat_type || 'Unclassified')}
-            </span>
-          </td>
-
-          <!-- Composite Score -->
-          <td class="py-3 px-4 align-top whitespace-nowrap">
+    if (liveItems.length > 0) {
+      tableHtml += `
+        <tr class="bg-zinc-100/70 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300 font-semibold text-[11px]">
+          <td colspan="6" class="py-2 px-4">
             <div class="flex items-center gap-2">
-              <div class="w-12 bg-zinc-200 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
-                <div class="h-full rounded-full ${isHigh ? 'bg-red-500' : isModerate ? 'bg-amber-500' : 'bg-emerald-500'}" style="width: ${t.risk_score}%"></div>
-              </div>
-              <span class="font-mono font-bold ${isHigh ? 'text-red-600 dark:text-red-400' : isModerate ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}">
-                ${t.risk_score}/100
-              </span>
-            </div>
-          </td>
-
-          <!-- Autonomous Action -->
-          <td class="py-3 px-4 align-top whitespace-nowrap">
-            ${actionPill}
-          </td>
-
-          <!-- Actions -->
-          <td class="py-3 px-4 align-top text-right whitespace-nowrap space-x-1">
-            ${isHigh ? `
-              <button class="btn-restore px-2.5 py-1 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 transition-all" data-id="${escapeHtml(t.id)}" title="Restore email to employee inbox">
-                Restore
-              </button>
-            ` : ''}
-            <button class="btn-purge p-1.5 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all" data-id="${escapeHtml(t.id)}" title="Purge threat record">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            </button>
-            <button class="btn-toggle-drawer p-1.5 rounded text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all" data-id="${escapeHtml(t.id)}" title="Toggle Heuristic Breakdown">
-              <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
-            </button>
-          </td>
-
-        </tr>
-
-        <!-- Accordion Drawer (Expanded View) -->
-        <tr class="bg-zinc-50/50 dark:bg-zinc-900/50 ${isExpanded ? '' : 'hidden'}" id="drawer-${escapeHtml(t.id)}">
-          <td colspan="6" class="p-4 border-b border-zinc-200 dark:border-zinc-800 text-xs">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-zinc-800/80 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-inner">
-              
-              <!-- Left Column: Explanation & Metadata -->
-              <div class="space-y-3">
-                <div>
-                  <span class="font-semibold text-zinc-900 dark:text-white uppercase tracking-wider text-[10px] text-zinc-500">Plain-English SME Guidance</span>
-                  <p class="text-zinc-800 dark:text-zinc-200 mt-1 leading-relaxed">${escapeHtml(t.explanation || 'No detailed analysis provided.')}</p>
-                </div>
-                <div>
-                  <span class="font-semibold text-zinc-900 dark:text-white uppercase tracking-wider text-[10px] text-zinc-500">Payload Preview / Snippet</span>
-                  <p class="text-zinc-600 dark:text-zinc-400 font-mono text-[11px] bg-zinc-50 dark:bg-zinc-900 p-2.5 rounded border border-zinc-200 dark:border-zinc-800 mt-1 break-words">
-                    ${escapeHtml(t.snippet || 'No snippet text available.')}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Right Column: Triggered Heuristic Rules -->
-              <div>
-                <span class="font-semibold text-zinc-900 dark:text-white uppercase tracking-wider text-[10px] text-zinc-500">Triggered Security Vector Signals</span>
-                <div class="mt-1.5 p-3 rounded bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                  ${matchedRulesHtml}
-                </div>
-                <div class="mt-3 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
-                  <span>Deterministic ID: <code class="font-mono text-zinc-700 dark:text-zinc-300">${escapeHtml(t.id)}</code></span>
-                  <span>Verdict Engine: <strong>Heuristic v0.1.0</strong></span>
-                </div>
-              </div>
-
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Active Extension Workstation (${PRIMARY_EXTENSION_USER})</span>
+              <span class="text-[10px] font-normal text-zinc-400">— Live Ingestion Feed</span>
             </div>
           </td>
         </tr>
       `;
-    }).join('');
+      tableHtml += liveItems.map(renderThreatRow).join('');
+    }
+
+    if (secondaryItems.length > 0) {
+      tableHtml += `
+        <tr class="bg-zinc-100/70 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300 font-semibold text-[11px]">
+          <td colspan="6" class="py-2 px-4">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-zinc-400"></span>
+              <span>Audited Organization Endpoints</span>
+              <span class="text-[10px] font-normal text-zinc-400">— Secondary Fleet Feeds</span>
+            </div>
+          </td>
+        </tr>
+      `;
+      tableHtml += secondaryItems.map(renderThreatRow).join('');
+    }
+
+    DOM.tableBody.innerHTML = tableHtml;
 
     if (window.lucide) {
       window.lucide.createIcons();
     }
+  }
+
+  function renderThreatRow(t) {
+    const isExpanded = state.expandedThreatIds.has(t.id);
+    const isHigh = t.tier === 'high';
+    const isModerate = t.tier === 'moderate';
+
+    // Subtle Monochrome Dot Indicators
+    let dotColor = 'bg-zinc-400';
+    let statusText = '<span class="text-zinc-600 dark:text-zinc-400 font-medium">Clean</span>';
+
+    if (isHigh) {
+      dotColor = 'bg-red-500';
+      statusText = '<span class="text-red-600 dark:text-red-400 font-medium">Quarantined</span>';
+    } else if (isModerate) {
+      dotColor = 'bg-amber-500';
+      statusText = '<span class="text-amber-600 dark:text-amber-400 font-medium">Watchlist</span>';
+    }
+
+    // Matched Rules list
+    let matchedRulesHtml = '<span class="text-zinc-400 dark:text-zinc-500">No anomaly patterns matched</span>';
+    if (t.matched_steps && t.matched_steps.length) {
+      const rules = [];
+      t.matched_steps.forEach(s => {
+        if (s.matched_rules && s.matched_rules.length) {
+          s.matched_rules.forEach(r => rules.push(r));
+        }
+      });
+      if (rules.length) {
+        matchedRulesHtml = rules.map(r => `
+          <li class="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
+            <span class="w-1.5 h-1.5 rounded-full ${isHigh ? 'bg-red-500' : isModerate ? 'bg-amber-500' : 'bg-zinc-400'}"></span>
+            ${escapeHtml(r)}
+          </li>
+        `).join('');
+        matchedRulesHtml = `<ul class="space-y-1">${matchedRulesHtml}</ul>`;
+      }
+    }
+
+    const recipient = t.recipient || PRIMARY_EXTENSION_USER;
+
+    return `
+      <tr class="threat-row hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors" data-id="${escapeHtml(t.id)}">
+        
+        <!-- Employee & Timestamp -->
+        <td class="py-2.5 px-4 align-top whitespace-nowrap">
+          <div class="font-medium text-zinc-900 dark:text-white font-mono text-[11px]">${escapeHtml(recipient)}</div>
+          <div class="text-[10.5px] text-zinc-400 mt-0.5">${escapeHtml(formatTimestamp(t.timestamp))}</div>
+        </td>
+
+        <!-- Sender & Subject -->
+        <td class="py-2.5 px-4 align-top max-w-xs md:max-w-sm">
+          <div class="font-medium text-zinc-900 dark:text-white truncate" title="${escapeHtml(t.subject)}">${escapeHtml(t.subject || 'No Subject')}</div>
+          <div class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5" title="${escapeHtml(t.sender)}">${escapeHtml(t.sender || 'Unknown Sender')}</div>
+        </td>
+
+        <!-- Classification Badge -->
+        <td class="py-2.5 px-4 align-top whitespace-nowrap">
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
+            <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
+            ${escapeHtml(t.threat_type || 'Unclassified')}
+          </span>
+        </td>
+
+        <!-- Score -->
+        <td class="py-2.5 px-4 align-top whitespace-nowrap font-mono text-[11.5px]">
+          <span class="${isHigh ? 'text-red-600 dark:text-red-400 font-bold' : isModerate ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-zinc-500'}">
+            ${t.risk_score}/100
+          </span>
+        </td>
+
+        <!-- Status -->
+        <td class="py-2.5 px-4 align-top whitespace-nowrap">
+          ${statusText}
+        </td>
+
+        <!-- Actions -->
+        <td class="py-2.5 px-4 align-top text-right whitespace-nowrap space-x-1">
+          ${isHigh ? `
+            <button class="btn-restore px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 transition-all" data-id="${escapeHtml(t.id)}" title="Restore to Inbox">
+              Restore
+            </button>
+          ` : ''}
+          <button class="btn-purge p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all" data-id="${escapeHtml(t.id)}" title="Purge Record">
+            <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+          </button>
+          <button class="btn-toggle-drawer p-1 rounded text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all" data-id="${escapeHtml(t.id)}" title="Toggle Heuristic Details">
+            <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
+          </button>
+        </td>
+
+      </tr>
+
+      <!-- Accordion Drawer (Expanded View) -->
+      <tr class="bg-zinc-50/60 dark:bg-zinc-900/60 ${isExpanded ? '' : 'hidden'}" id="drawer-${escapeHtml(t.id)}">
+        <td colspan="6" class="p-3.5 border-b border-zinc-200 dark:border-zinc-800 text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-white dark:bg-zinc-800/90 p-3.5 rounded border border-zinc-200 dark:border-zinc-700 shadow-sm">
+            
+            <!-- Left Column: Explanation & Snippet -->
+            <div class="space-y-2.5">
+              <div>
+                <span class="font-semibold text-zinc-400 uppercase tracking-wider text-[10px]">SME Analysis</span>
+                <p class="text-zinc-800 dark:text-zinc-200 mt-0.5 leading-relaxed text-[11.5px]">${escapeHtml(t.explanation || 'No detailed analysis.')}</p>
+              </div>
+              <div>
+                <span class="font-semibold text-zinc-400 uppercase tracking-wider text-[10px]">Email Snippet</span>
+                <p class="text-zinc-600 dark:text-zinc-400 font-mono text-[11px] bg-zinc-50 dark:bg-zinc-900 p-2 rounded border border-zinc-200 dark:border-zinc-800 mt-0.5 break-words">
+                  ${escapeHtml(t.snippet || 'No snippet text available.')}
+                </p>
+              </div>
+            </div>
+
+            <!-- Right Column: Triggered Heuristic Rules -->
+            <div>
+              <span class="font-semibold text-zinc-400 uppercase tracking-wider text-[10px]">Triggered Security Signals</span>
+              <div class="mt-1 p-2.5 rounded bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[11.5px]">
+                ${matchedRulesHtml}
+              </div>
+              <div class="mt-2.5 flex items-center justify-between text-[10.5px] text-zinc-400 font-mono">
+                <span>ID: ${escapeHtml(t.id)}</span>
+                <span>Engine: Heuristic v0.1.0</span>
+              </div>
+            </div>
+
+          </div>
+        </td>
+      </tr>
+    `;
   }
 
   // Export
@@ -752,6 +710,7 @@
     renderThreatTable,
     fetchLiveThreats,
     seedDemoThreats,
+    clearThreats,
     showToast,
     exportThreatLog,
     restoreThreat,
@@ -763,17 +722,21 @@
     applyTheme(state.theme);
     initPolicies();
     
-    // Auto-seed initially
-    seedDemoThreats();
+    // Start with a clean state as requested
+    updateKPIMetrics();
+    renderThreatTable();
     
+    // Poll live threats from local backend
     fetchLiveThreats();
 
     // Event Listeners
     if (DOM.themeToggleBtn) DOM.themeToggleBtn.addEventListener('click', toggleTheme);
     if (DOM.manualRefreshBtn) DOM.manualRefreshBtn.addEventListener('click', fetchLiveThreats);
     if (DOM.seedThreatsBtn) DOM.seedThreatsBtn.addEventListener('click', seedDemoThreats);
+    if (DOM.clearThreatsBtn) DOM.clearThreatsBtn.addEventListener('click', clearThreats);
     if (DOM.exportLogBtn) DOM.exportLogBtn.addEventListener('click', exportThreatLog);
     if (DOM.searchInput) DOM.searchInput.addEventListener('input', handleSearchInput);
+    if (DOM.userFilterSelect) DOM.userFilterSelect.addEventListener('change', handleUserFilterChange);
 
     DOM.filterTabs.forEach(tab => {
       tab.addEventListener('click', handleFilterClick);
