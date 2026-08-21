@@ -1,0 +1,119 @@
+"""
+MailFlow Multi-Step Detection Pipeline
+Coordinates all 4 heuristic steps, aggregates multi-vector threat scores, and constructs SME explanations.
+"""
+
+import hashlib
+from datetime import datetime, timezone
+from typing import List
+from .base import StepResult, ThreatRecord, ScanPayload
+from .urgency import evaluate_urgency
+from .financial import evaluate_financial
+from .credentials import evaluate_credentials
+from .lookalike import evaluate_lookalike
+
+
+def generate_scan_id(sender: str, subject: str) -> str:
+    """Generates a stable deterministic ID for an email entity."""
+    content = f"{sender.strip().lower()}|{subject.strip().lower()}"
+    return f"mf_{hashlib.sha256(content.encode('utf-8')).hexdigest()[:12]}"
+
+
+def run_pipeline(payload: ScanPayload) -> ThreatRecord:
+    """
+    Executes the multi-step heuristic pipeline and constructs a finalized threat record.
+    """
+    sender = payload.sender.strip()
+    subject = payload.subject.strip()
+    snippet = (payload.snippet or "").strip()
+
+    # Run the 4 heuristic evaluation steps
+    step1: StepResult = evaluate_urgency(subject=subject, snippet=snippet, sender=sender)
+    step2: StepResult = evaluate_financial(subject=subject, snippet=snippet, sender=sender)
+    step3: StepResult = evaluate_credentials(subject=subject, snippet=snippet, sender=sender)
+    step4: StepResult = evaluate_lookalike(sender=sender, subject=subject, snippet=snippet)
+
+    steps: List[StepResult] = [step1, step2, step3, step4]
+
+    # Cybersecurity composite scoring:
+    # Primary threat vector establishes the baseline, compounded by secondary indicators
+    step_scores = [s.score for s in steps]
+    primary_score = max(step_scores) if step_scores else 0.0
+
+    if primary_score > 0:
+        # Sum of non-zero secondary vector scores
+        secondary_sum = sum(s for s in step_scores) - primary_score
+        composite = primary_score + (secondary_sum * 0.35)
+        final_score = int(min(max(round(composite), 0), 100))
+    else:
+        final_score = 0
+
+    # Determine Tier, Color, Action, and Threat Type
+    if final_score >= 75:
+        tier = "high"
+        color = "red"
+        action = "quarantine_slide"
+        if step2.score >= 35:
+            threat_type = "Urgent Financial / BEC Fraud"
+        elif step3.score >= 35 or step4.score >= 35:
+            threat_type = "Credential Harvesting / Phishing Attack"
+        else:
+            threat_type = "High-Risk Social Engineering"
+    elif final_score >= 36:
+        tier = "moderate"
+        color = "yellow"
+        action = "flag_warning"
+        if step1.score >= 20:
+            threat_type = "Coercive Urgency / Marketing Lure"
+        elif step2.score >= 20:
+            threat_type = "Unverified Invoice Reference"
+        else:
+            threat_type = "Suspicious Social Engineering"
+    else:
+        tier = "low"
+        color = "green"
+        action = "verified"
+        threat_type = "Verified Safe"
+
+    # Construct plain-English explanation
+    explanation = generate_explanation(tier, steps, final_score)
+
+    scan_id = generate_scan_id(sender, subject)
+    timestamp = datetime.now(timezone.utc).isoformat()
+
+    return ThreatRecord(
+        id=scan_id,
+        timestamp=timestamp,
+        sender=sender,
+        subject=subject,
+        snippet=snippet,
+        risk_score=final_score,
+        tier=tier,
+        color=color,
+        action=action,
+        threat_type=threat_type,
+        matched_steps=steps,
+        explanation=explanation,
+    )
+
+
+def generate_explanation(tier: str, steps: List[StepResult], score: int) -> str:
+    """Generates an intuitive, non-technical plain English explanation for SME users."""
+    active_matches = []
+    for step in steps:
+        for rule in step.matched_rules:
+            active_matches.append(rule)
+
+    if tier == "high":
+        if active_matches:
+            top_reasons = "; ".join(active_matches[:2])
+            return f"High-risk threat detected (Score {score}/100). Flagged for: {top_reasons}. Quarantined to protect your inbox."
+        return f"High-risk threat detected (Score {score}/100). Coercive vectors and deceptive indicators exceed enterprise safety thresholds."
+
+    if tier == "moderate":
+        if active_matches:
+            reasons = "; ".join(active_matches[:2])
+            return f"Moderate caution advised (Score {score}/100). Detected: {reasons}. Verify sender authenticity before interacting."
+        return f"Moderate caution advised (Score {score}/100). Contains potential social engineering patterns."
+
+    return f"Clean (Score {score}/100). No urgency coercion, payment tampering, or lookalike anomalies detected."
