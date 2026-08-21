@@ -1,6 +1,6 @@
 """
 MailFlow Multi-Step Detection Pipeline
-Coordinates all 4 heuristic steps, aggregates multi-vector threat scores, and constructs SME explanations.
+Coordinates all 4 heuristic steps, aggregates multi-vector threat scores, evaluates compound attack vectors, and constructs SME explanations.
 """
 
 import hashlib
@@ -41,9 +41,26 @@ def run_pipeline(payload: ScanPayload) -> ThreatRecord:
     primary_score = max(step_scores) if step_scores else 0.0
 
     if primary_score > 0:
-        # Sum of non-zero secondary vector scores
         secondary_sum = sum(s for s in step_scores) - primary_score
-        composite = primary_score + (secondary_sum * 0.35)
+        composite = primary_score + (secondary_sum * 0.40)
+
+        # Compound Threat Multipliers (High-risk attack pairings)
+        # 1. Executive Secrecy/Urgency + Gift cards/Crypto/Payment redirection
+        if step1.score >= 35 and step2.score >= 35:
+            composite = max(composite, 80.0)
+
+        # 2. Lookalike domain + Credential harvesting or Payment redirection
+        if step4.score >= 40 and (step3.score >= 30 or step2.score >= 30):
+            composite = max(composite, 85.0)
+
+        # 3. Account Suspension / Intimidation + Credential Verification
+        if step1.score >= 30 and step3.score >= 35:
+            composite = max(composite, 78.0)
+
+        # 4. Bank Account Redirection / IBAN Tampering + Urgency/Invoice
+        if step2.score >= 45 and (step1.score >= 25 or step2.score >= 65):
+            composite = max(composite, 78.0)
+
         final_score = int(min(max(round(composite), 0), 100))
     else:
         final_score = 0
@@ -53,7 +70,13 @@ def run_pipeline(payload: ScanPayload) -> ThreatRecord:
         tier = "high"
         color = "red"
         action = "quarantine_slide"
-        if step2.score >= 35:
+        if any("QR Code" in r for r in step3.matched_rules):
+            threat_type = "Quishing / QR Code Trap"
+        elif any("Executive Impersonation" in r or "Secrecy" in r for r in step1.matched_rules) and step2.score >= 30:
+            threat_type = "Executive Impersonation / CEO Fraud"
+        elif any("Bank Account Redirection" in r for r in step2.matched_rules):
+            threat_type = "Bank Redirection / IBAN Hijack"
+        elif step2.score >= 35:
             threat_type = "Urgent Financial / BEC Fraud"
         elif step3.score >= 35 or step4.score >= 35:
             threat_type = "Credential Harvesting / Phishing Attack"
@@ -63,10 +86,18 @@ def run_pipeline(payload: ScanPayload) -> ThreatRecord:
         tier = "moderate"
         color = "yellow"
         action = "flag_warning"
-        if step1.score >= 20:
-            threat_type = "Coercive Urgency / Marketing Lure"
-        elif step2.score >= 20:
+        if any("QR Code" in r for r in step3.matched_rules):
+            threat_type = "QR Code Verification Notice"
+        elif any("Bank Account Redirection" in r for r in step2.matched_rules):
+            threat_type = "Unverified Bank Account Update"
+        elif step2.score >= 25:
             threat_type = "Unverified Invoice Reference"
+        elif any("Executive Impersonation" in r or "Secrecy" in r for r in step1.matched_rules):
+            threat_type = "Executive Secrecy Lure"
+        elif step3.score >= 25:
+            threat_type = "Suspicious Auth / Portal Request"
+        elif step1.score >= 20:
+            threat_type = "Coercive Urgency / Marketing Lure"
         else:
             threat_type = "Suspicious Social Engineering"
     else:
@@ -107,7 +138,7 @@ def generate_explanation(tier: str, steps: List[StepResult], score: int) -> str:
     if tier == "high":
         if active_matches:
             top_reasons = "; ".join(active_matches[:2])
-            return f"High-risk threat detected (Score {score}/100). Flagged for: {top_reasons}. Quarantined to protect your inbox."
+            return f"High-risk threat detected (Score {score}/100). Flagged for: {top_reasons}. Quarantined to protect your organization."
         return f"High-risk threat detected (Score {score}/100). Coercive vectors and deceptive indicators exceed enterprise safety thresholds."
 
     if tier == "moderate":
