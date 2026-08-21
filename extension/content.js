@@ -689,6 +689,27 @@
   }
 
   async function dismissThreat(threatId) {
+    restoredThreatIds.add(threatId);
+    quarantinedThreats.delete(threatId);
+    moderateThreats.delete(threatId);
+    persistStoredThreats();
+    updateSidebarBadge();
+    renderMailFlowDashboard();
+
+    // Un-hide row if in DOM
+    const row = document.querySelector(`tr[data-mailflow-id="${threatId}"], .zA[data-mailflow-id="${threatId}"]`);
+    if (row) {
+      row.classList.remove('mailflow-quarantine-slide');
+      row.dataset.mailflowRestored = 'true';
+      delete row.dataset.mfRisk;
+      row.style.display = '';
+      const scanBtn = row.querySelector('.mailflow-scan-btn');
+      if (scanBtn) {
+        scanBtn.className = 'mailflow-scan-btn';
+        scanBtn.innerHTML = ICONS.shieldRow;
+      }
+    }
+
     try {
       fetch(`${BACKEND_URL}/api/threats/restore`, {
         method: 'POST',
@@ -697,11 +718,6 @@
       }).catch(() => {});
     } catch (e) {}
 
-    quarantinedThreats.delete(threatId);
-    moderateThreats.delete(threatId);
-    persistStoredThreats();
-    updateSidebarBadge();
-    renderMailFlowDashboard();
     showToast('Threat item dismissed and unquarantined in backend', 'info');
   }
 
@@ -716,6 +732,7 @@
       if (row.dataset.mfRisk === 'moderate') {
         delete row.dataset.mfRisk;
       }
+      row.dataset.mailflowRestored = 'true';
       const btn = row.querySelector('.mailflow-scan-btn');
       if (btn) {
         btn.className = 'mailflow-scan-btn';
@@ -730,6 +747,7 @@
     // 2. Clear stores & local storage & notify backend for all IDs
     const allIds = [...quarantinedThreats.keys(), ...moderateThreats.keys()];
     allIds.forEach(id => {
+      restoredThreatIds.add(id);
       try {
         fetch(`${BACKEND_URL}/api/threats/restore`, {
           method: 'POST',

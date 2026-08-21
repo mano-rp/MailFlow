@@ -24,6 +24,7 @@
   const state = {
     isAuthenticated: sessionStorage.getItem(AUTH_CONFIG.STORAGE_KEY) === 'true',
     threats: [],
+    deletedTombstones: new Set(JSON.parse(sessionStorage.getItem('mailflow_dashboard_tombstones') || '[]')),
     activeFilter: 'all',
     activeUserFilter: 'all',
     searchQuery: '',
@@ -337,12 +338,18 @@
   function seedDemoThreats() {
     let newCount = 0;
     DEMO_SEEDS.forEach(seed => {
+      // Allow re-seeding by clearing any tombstone for demo seeds
+      state.deletedTombstones.delete(seed.id);
       const exists = state.threats.some(t => t.id === seed.id);
       if (!exists) {
         state.threats.push(seed);
         newCount++;
       }
     });
+
+    try {
+      sessionStorage.setItem('mailflow_dashboard_tombstones', JSON.stringify(Array.from(state.deletedTombstones)));
+    } catch (e) {}
 
     updateKPIMetrics();
     renderThreatTable();
@@ -351,14 +358,20 @@
 
   async function clearThreats() {
     const liveThreats = state.threats.filter(t => t.isLive !== false);
+    state.threats.forEach(t => state.deletedTombstones.add(t.id));
+    
+    try {
+      sessionStorage.setItem('mailflow_dashboard_tombstones', JSON.stringify(Array.from(state.deletedTombstones)));
+    } catch (e) {}
+
     for (const t of liveThreats) {
       if (state.isBackendOnline) {
         try {
-          await fetch(`${BACKEND_URL}/api/threats/restore`, {
+          fetch(`${BACKEND_URL}/api/threats/restore`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: t.id })
-          });
+          }).catch(() => {});
         } catch (e) {}
       }
     }
@@ -423,15 +436,18 @@
         const data = await res.json();
         const incoming = [...(data.high_risk || []), ...(data.moderate_risk || [])];
 
-        const incomingLiveThreats = incoming.map(inc => ({
+        // Filter out any IDs that were deleted/restored in this session (tombstone protection against race conditions)
+        const activeIncoming = incoming.filter(inc => !state.deletedTombstones.has(inc.id));
+
+        const incomingLiveThreats = activeIncoming.map(inc => ({
           ...inc,
           isLive: true,
           recipient: inc.recipient || PRIMARY_EXTENSION_USER,
           department: 'Active Extension Workstation'
         }));
 
-        // Retain any secondary/demo feed items (isLive === false)
-        const secondaryThreats = state.threats.filter(t => t.isLive === false);
+        // Retain any secondary/demo feed items (isLive === false) that are not deleted
+        const secondaryThreats = state.threats.filter(t => t.isLive === false && !state.deletedTombstones.has(t.id));
 
         // Combined reconciled list
         const combined = [...incomingLiveThreats, ...secondaryThreats];
@@ -462,40 +478,41 @@
     const threat = state.threats.find(t => t.id === threatId);
     const recipient = threat ? threat.recipient : PRIMARY_EXTENSION_USER;
 
+    // Optimistic tombstone registration immediately eliminates race condition
+    state.deletedTombstones.add(threatId);
+    try {
+      sessionStorage.setItem('mailflow_dashboard_tombstones', JSON.stringify(Array.from(state.deletedTombstones)));
+    } catch (e) {}
+
+    // Immediate UI eviction
+    state.threats = state.threats.filter(t => t.id !== threatId);
+    state.expandedThreatIds.delete(threatId);
+    updateKPIMetrics();
+    renderThreatTable();
+
     try {
       if (state.isBackendOnline) {
-        await fetch(`${BACKEND_URL}/api/threats/restore`, {
+        fetch(`${BACKEND_URL}/api/threats/restore`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: threatId })
-        });
+        }).catch(() => {});
       }
     } catch (e) {
       console.warn('[MailFlow Dashboard] Restore request err:', e);
     }
 
-    state.threats = state.threats.filter(t => t.id !== threatId);
-    state.expandedThreatIds.delete(threatId);
-    updateKPIMetrics();
-    renderThreatTable();
     showToast(`Restored to ${recipient} inbox & unquarantined in backend`, 'success');
   }
 
   async function purgeThreat(threatId) {
     if (!threatId) return;
 
-    // 1. Trigger deletion in backend
+    // Optimistic tombstone registration immediately eliminates race condition
+    state.deletedTombstones.add(threatId);
     try {
-      if (state.isBackendOnline) {
-        await fetch(`${BACKEND_URL}/api/threats/restore`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: threatId })
-        });
-      }
-    } catch (e) {
-      console.warn('[MailFlow Dashboard] Purge backend sync err:', e);
-    }
+      sessionStorage.setItem('mailflow_dashboard_tombstones', JSON.stringify(Array.from(state.deletedTombstones)));
+    } catch (e) {}
 
     const row = DOM.tableBody?.querySelector(`tr[data-id="${threatId}"]`);
     if (row) {
@@ -509,6 +526,19 @@
       renderThreatTable();
       showToast('Threat deleted from backend and security ledger', 'info');
     }, 180);
+
+    // 1. Trigger deletion in backend
+    try {
+      if (state.isBackendOnline) {
+        fetch(`${BACKEND_URL}/api/threats/restore`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: threatId })
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('[MailFlow Dashboard] Purge backend sync err:', e);
+    }
   }
 
   function toggleThreatDrawer(threatId) {
