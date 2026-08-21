@@ -493,6 +493,17 @@
       btn.innerHTML = ICONS.warning;
       btn.setAttribute('title', `MailFlow Warning: ${threat_type} (${risk_score}/100)`);
       showToast(`🟡 MailFlow Caution: ${threat_type} (Score: ${risk_score}/100)`, 'warning');
+      
+      row.dataset.mfRisk = 'moderate';
+      
+      const subjectEl = row.querySelector('.bog, .bqe, span.bqe');
+      if (subjectEl && !subjectEl.querySelector('.mailflow-moderate-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'mailflow-moderate-badge';
+        badge.innerHTML = `⚠ Caution (${risk_score})`;
+        subjectEl.prepend(badge);
+      }
+
       moderateThreats.set(id, { ...data, row });
       updateSidebarBadge();
     } else if (tier === 'high') {

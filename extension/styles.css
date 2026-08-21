@@ -225,6 +225,27 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   pointer-events: none !important;
 }
 
+/* Moderate Risk Row Warning Accent */
+tr.zA[data-mf-risk="moderate"], .zA[data-mf-risk="moderate"] {
+  border-left: 3px solid #f59e0b !important;
+  background-color: rgba(245, 158, 11, 0.04) !important;
+}
+
+.mailflow-moderate-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 1px 6px !important;
+  border-radius: 4px !important;
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+  margin-right: 6px !important;
+  vertical-align: middle !important;
+}
+
 /* ==========================================================================
    3. Email Row Hover Action Toolbar Button (Dynamic 3-Color Indicators)
    ========================================================================== */
