@@ -78,6 +78,76 @@
 
   /**
    * --------------------------------------------------------------------------
+   * BACKEND HEALTH & LIVE POLLING ENGINE
+   * --------------------------------------------------------------------------
+   */
+  async function checkBackendPing() {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch(`${BACKEND_URL}/api/ping`, {
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        state.isBackendOnline = true;
+        if (DOM.backendStatusDot) {
+          DOM.backendStatusDot.className = 'w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50';
+        }
+        if (DOM.backendStatusText) {
+          DOM.backendStatusText.textContent = 'API Connected (:8000)';
+        }
+      } else {
+        throw new Error('API non-200');
+      }
+    } catch {
+      state.isBackendOnline = false;
+      if (DOM.backendStatusDot) {
+        DOM.backendStatusDot.className = 'w-2 h-2 rounded-full bg-red-500';
+      }
+      if (DOM.backendStatusText) {
+        DOM.backendStatusText.textContent = 'API Offline (:8000)';
+      }
+    }
+  }
+
+  async function fetchLiveThreats() {
+    await checkBackendPing();
+
+    if (!state.isBackendOnline) return;
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/threats`, {
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const incoming = [...(data.high_risk || []), ...(data.moderate_risk || [])];
+
+        let stateChanged = false;
+        incoming.forEach(inc => {
+          const exists = state.threats.some(t => t.id === inc.id);
+          if (!exists) {
+            state.threats.unshift(inc);
+            stateChanged = true;
+          }
+        });
+
+        if (stateChanged) {
+          updateKPIMetrics();
+          renderThreatTable();
+        }
+      }
+    } catch (err) {
+      console.warn('[MailFlow Dashboard] Threat polling error:', err);
+    }
+  }
+
+  /**
+   * --------------------------------------------------------------------------
    * KPI METRIC CALCULATION ENGINE
    * --------------------------------------------------------------------------
    */
@@ -306,16 +376,24 @@
     toggleTheme,
     updateKPIMetrics,
     renderThreatTable,
+    fetchLiveThreats,
   };
 
   document.addEventListener('DOMContentLoaded', () => {
     applyTheme(state.theme);
     updateKPIMetrics();
     renderThreatTable();
+    fetchLiveThreats();
 
     if (DOM.themeToggleBtn) {
       DOM.themeToggleBtn.addEventListener('click', toggleTheme);
     }
+    if (DOM.manualRefreshBtn) {
+      DOM.manualRefreshBtn.addEventListener('click', fetchLiveThreats);
+    }
+
+    // Start background polling loop
+    setInterval(fetchLiveThreats, POLLING_INTERVAL_MS);
   });
 
 })();
