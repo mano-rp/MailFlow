@@ -20,11 +20,29 @@
     STORAGE_KEY: 'mailflow_auth',
   };
 
+  // Clear any legacy persistent tombstone keys so all active threats show immediately
+  try {
+    sessionStorage.removeItem('mailflow_dashboard_tombstones');
+    localStorage.removeItem('mailflow_purged_ids');
+  } catch (e) {}
+
+  // In-memory short-lived transient deletion lock to prevent race conditions during in-flight network requests (3 second TTL)
+  const transientDeletions = new Map(); // threatId -> expiry timestamp (Date.now() + 3000)
+
+  function isTransientDeleted(threatId) {
+    const expireAt = transientDeletions.get(threatId);
+    if (!expireAt) return false;
+    if (Date.now() > expireAt) {
+      transientDeletions.delete(threatId);
+      return false;
+    }
+    return true;
+  }
+
   // State Management
   const state = {
     isAuthenticated: sessionStorage.getItem(AUTH_CONFIG.STORAGE_KEY) === 'true',
     threats: [],
-    deletedTombstones: new Set(JSON.parse(sessionStorage.getItem('mailflow_dashboard_tombstones') || '[]')),
     activeFilter: 'all',
     activeUserFilter: 'all',
     searchQuery: '',
@@ -338,18 +356,13 @@
   function seedDemoThreats() {
     let newCount = 0;
     DEMO_SEEDS.forEach(seed => {
-      // Allow re-seeding by clearing any tombstone for demo seeds
-      state.deletedTombstones.delete(seed.id);
+      transientDeletions.delete(seed.id);
       const exists = state.threats.some(t => t.id === seed.id);
       if (!exists) {
         state.threats.push(seed);
         newCount++;
       }
     });
-
-    try {
-      sessionStorage.setItem('mailflow_dashboard_tombstones', JSON.stringify(Array.from(state.deletedTombstones)));
-    } catch (e) {}
 
     updateKPIMetrics();
     renderThreatTable();
@@ -358,11 +371,7 @@
 
   async function clearThreats() {
     const liveThreats = state.threats.filter(t => t.isLive !== false);
-    state.threats.forEach(t => state.deletedTombstones.add(t.id));
-    
-    try {
-      sessionStorage.setItem('mailflow_dashboard_tombstones', JSON.stringify(Array.from(state.deletedTombstones)));
-    } catch (e) {}
+    state.threats.forEach(t => transientDeletions.set(t.id, Date.now() + 3000));
 
     for (const t of liveThreats) {
       if (state.isBackendOnline) {
@@ -436,8 +445,8 @@
         const data = await res.json();
         const incoming = [...(data.high_risk || []), ...(data.moderate_risk || [])];
 
-        // Filter out any IDs that were deleted/restored in this session (tombstone protection against race conditions)
-        const activeIncoming = incoming.filter(inc => !state.deletedTombstones.has(inc.id));
+        // Filter out any IDs that are in the short-lived 3s transient deletion lock
+        const activeIncoming = incoming.filter(inc => !isTransientDeleted(inc.id));
 
         const incomingLiveThreats = activeIncoming.map(inc => ({
           ...inc,
@@ -447,7 +456,7 @@
         }));
 
         // Retain any secondary/demo feed items (isLive === false) that are not deleted
-        const secondaryThreats = state.threats.filter(t => t.isLive === false && !state.deletedTombstones.has(t.id));
+        const secondaryThreats = state.threats.filter(t => t.isLive === false && !isTransientDeleted(t.id));
 
         // Combined reconciled list
         const combined = [...incomingLiveThreats, ...secondaryThreats];
@@ -478,11 +487,8 @@
     const threat = state.threats.find(t => t.id === threatId);
     const recipient = threat ? threat.recipient : PRIMARY_EXTENSION_USER;
 
-    // Optimistic tombstone registration immediately eliminates race condition
-    state.deletedTombstones.add(threatId);
-    try {
-      sessionStorage.setItem('mailflow_dashboard_tombstones', JSON.stringify(Array.from(state.deletedTombstones)));
-    } catch (e) {}
+    // Transient in-memory lock to prevent race conditions during in-flight network requests
+    transientDeletions.set(threatId, Date.now() + 3000);
 
     // Immediate UI eviction
     state.threats = state.threats.filter(t => t.id !== threatId);
@@ -508,11 +514,8 @@
   async function purgeThreat(threatId) {
     if (!threatId) return;
 
-    // Optimistic tombstone registration immediately eliminates race condition
-    state.deletedTombstones.add(threatId);
-    try {
-      sessionStorage.setItem('mailflow_dashboard_tombstones', JSON.stringify(Array.from(state.deletedTombstones)));
-    } catch (e) {}
+    // Transient in-memory lock to prevent race conditions during in-flight network requests
+    transientDeletions.set(threatId, Date.now() + 3000);
 
     const row = DOM.tableBody?.querySelector(`tr[data-id="${threatId}"]`);
     if (row) {
