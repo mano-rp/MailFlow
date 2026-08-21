@@ -873,7 +873,19 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
   box-sizing: border-box !important;
   font-family: var(--mf-font) !important;
-  transition: opacity 0.2s ease, transform 0.2s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: opacity 0.25s ease, transform 0.25s ease !important;
+}
+
+.mailflow-thread-shield.scanning {
+  background: #f8fafd !important;
+  border: 1px solid #c2e7ff !important;
+}
+
+.mailflow-thread-shield.clean {
+  background: #f6fbf7 !important;
+  border: 1px solid #c4eed0 !important;
 }
 
 .mailflow-thread-shield.high {
@@ -884,6 +896,32 @@ body.mailflow-active-mode #mailflow-placeholder-view {
 .mailflow-thread-shield.moderate {
   background: #fefce8 !important;
   border: 1.5px solid #facc15 !important;
+}
+
+/* Material 3 Linear Indeterminate Progress Bar for Thread Shield */
+.mf-shield-progress {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 4px !important;
+  background-color: #d3e3fd !important;
+  overflow: hidden !important;
+}
+
+.mf-shield-progress-inner {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  background-color: #0b57d0 !important;
+  animation: mf-shield-bar 1.3s infinite cubic-bezier(0.65, 0.815, 0.735, 0.395) !important;
+}
+
+@keyframes mf-shield-bar {
+  0% { left: -35%; right: 100%; }
+  60% { left: 100%; right: -90%; }
+  100% { left: 100%; right: -90%; }
 }
 
 .mf-shield-card {
@@ -911,6 +949,18 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.4px !important;
+}
+
+.mf-shield-badge.scanning {
+  background-color: #e8f0fe !important;
+  color: #0b57d0 !important;
+  border: 1px solid #a8c7fa !important;
+}
+
+.mf-shield-badge.clean {
+  background-color: #e6f4ea !important;
+  color: #137333 !important;
+  border: 1px solid #a8dab5 !important;
 }
 
 .mf-shield-badge.high {
