@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailFlow Fleet Command — SME Admin Dashboard</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Google Sans', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom Dashboard Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen font-sans antialiased transition-colors duration-200 selection:bg-brand-500 selection:text-white">
+
+  <!-- Main App Shell -->
+  <div class="flex flex-col min-h-screen">
+    
+    <!-- Top Header -->
+    <header class="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 transition-colors">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        
+        <!-- Left: Brand & Fleet Node Indicator -->
+        <div class="flex items-center gap-3.5">
+          <div class="w-9 h-9 rounded-xl bg-brand-600 dark:bg-brand-500 flex items-center justify-center text-white shadow-sm shadow-brand-500/20">
+            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-base tracking-tight text-zinc-900 dark:text-white">MailFlow Fleet Command</span>
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                @acme-corp.com
+              </span>
+            </div>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Enterprise SME Autonomous Threat Triage</p>
+          </div>
+        </div>
+
+        <!-- Right: Server Status, Actions & Theme Toggle -->
+        <div class="flex items-center gap-2.5">
+          
+          <!-- Live API Pulse Badge -->
+          <div id="backend-status-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all">
+            <span id="backend-status-dot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span id="backend-status-text" class="text-zinc-700 dark:text-zinc-300">Checking API (:8000)...</span>
+          </div>
+
+          <!-- Manual Refresh Button -->
+          <button id="btn-manual-refresh" class="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Refresh Live Data" aria-label="Refresh Data">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Theme Switcher -->
+          <button id="btn-theme-toggle" class="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Toggle Theme" aria-label="Toggle Theme">
+            <i id="theme-icon" data-lucide="moon" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      
+      <!-- KPI Metric Cards Grid -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-grid">
+        <!-- Metric 1: Total Processed -->
+        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider">Scans Evaluated</span>
+            <div class="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-brand-600 dark:text-brand-400">
+              <i data-lucide="mail-search" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white" id="kpi-total-scans">0</span>
+            <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center">
+              <i data-lucide="activity" class="w-3 h-3 mr-0.5"></i> Live Sync
+            </span>
+          </div>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Multi-step heuristic throughput</p>
+        </div>
+
+        <!-- Metric 2: Quarantined High Threats -->
+        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-400">Quarantined (High)</span>
+            <div class="p-2 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400">
+              <i data-lucide="shield-x" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400" id="kpi-high-threats">0</span>
+            <span class="text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 px-1.5 py-0.5 rounded">
+              Critical
+            </span>
+          </div>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Isolated from workforce inboxes</p>
+        </div>
+
+        <!-- Metric 3: Watchlist Moderate Threats -->
+        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Watchlist (Moderate)</span>
+            <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+              <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400" id="kpi-moderate-threats">0</span>
+            <span class="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
+              Triage
+            </span>
+          </div>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Flagged for employee caution</p>
+        </div>
+
+        <!-- Metric 4: Capital Exposure Prevented -->
+        <div class="kpi-card bg-white dark:bg-zinc-900 rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+          <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Exposure Prevented</span>
+            <div class="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+              <i data-lucide="badge-dollar-sign" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400" id="kpi-capital-saved">$0</span>
+            <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Est. ROI</span>
+          </div>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Based on avg SME BEC claim cost</p>
+        </div>
+      </section>
+
+      <!-- SME Automated Defense Policies Section -->
+      <section class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all">
+        <div class="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="sliders" class="w-4 h-4 text-brand-600 dark:text-brand-400"></i>
+            <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Autonomous SME Defense Rules</h2>
+          </div>
+          <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Active Rule Engine v0.1.0</span>
+        </div>
+        <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
+          
+          <!-- Policy 1 -->
+          <div class="flex items-start justify-between gap-3 p-3.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800">
+            <div>
+              <p class="font-semibold text-zinc-900 dark:text-white">Auto-Quarantine Bank Updates</p>
+              <p class="text-zinc-500 dark:text-zinc-400 mt-0.5">Isolate emails requesting routing or IBAN modifications</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+              <input type="checkbox" checked class="sr-only peer policy-toggle" data-policy="bank-rules">
+              <div class="w-9 h-5 bg-zinc-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+            </label>
+          </div>
+
+          <!-- Policy 2 -->
+          <div class="flex items-start justify-between gap-3 p-3.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800">
+            <div>
+              <p class="font-semibold text-zinc-900 dark:text-white">Executive Homoglyph Lock</p>
+              <p class="text-zinc-500 dark:text-zinc-400 mt-0.5">Strict typosquatting match on leadership display names</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+              <input type="checkbox" checked class="sr-only peer policy-toggle" data-policy="homoglyph-lock">
+              <div class="w-9 h-5 bg-zinc-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+            </label>
+          </div>
+
+          <!-- Policy 3 -->
+          <div class="flex items-start justify-between gap-3 p-3.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800">
+            <div>
+              <p class="font-semibold text-zinc-900 dark:text-white">Quishing & Userinfo Traps</p>
+              <p class="text-zinc-500 dark:text-zinc-400 mt-0.5">Intercept URL userinfo masquerades & QR login prompts</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+              <input type="checkbox" checked class="sr-only peer policy-toggle" data-policy="quishing-rules">
+              <div class="w-9 h-5 bg-zinc-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+            </label>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Threat Audit Ledger Table Container -->
+      <section class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all">
+        
+        <!-- Table Toolbar & Filter Bar -->
+        <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          
+          <!-- Left: Filter Tabs -->
+          <div class="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-x-auto text-xs font-medium">
+            <button class="filter-tab active px-3 py-1.5 rounded-md text-zinc-900 dark:text-white bg-white dark:bg-zinc-700 shadow-sm transition-all" data-filter="all">
+              All Events <span id="count-all" class="ml-1 px-1.5 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-600 text-[10px]">0</span>
+            </button>
+            <button class="filter-tab px-3 py-1.5 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all" data-filter="high">
+              Quarantined <span id="count-high" class="ml-1 px-1.5 py-0.2 rounded-full bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-[10px]">0</span>
+            </button>
+            <button class="filter-tab px-3 py-1.5 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all" data-filter="moderate">
+              Watchlist <span id="count-moderate" class="ml-1 px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 text-[10px]">0</span>
+            </button>
+            <button class="filter-tab px-3 py-1.5 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all" data-filter="low">
+              Verified Clean <span id="count-low" class="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-[10px]">0</span>
+            </button>
+          </div>
+
+          <!-- Right: Search Box & Actions -->
+          <div class="flex items-center gap-2.5">
+            <div class="relative flex-1 sm:w-64">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
+              <input type="text" id="threat-search-input" placeholder="Search sender, subject, user..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 text-zinc-900 dark:text-white transition-all">
+            </div>
+
+            <!-- Demo Seeder Action Button -->
+            <button id="btn-seed-threats" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800 hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-all">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>Seed Demo Feed</span>
+            </button>
+
+            <!-- Export Button -->
+            <button id="btn-export-log" class="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-all" title="Export Ledger JSON">
+              <i data-lucide="download" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Threat Audit Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse" id="threat-table">
+            <thead>
+              <tr class="bg-zinc-50/80 dark:bg-zinc-800/40 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider border-b border-zinc-200 dark:border-zinc-800">
+                <th class="py-3 px-4">Time & Recipient</th>
+                <th class="py-3 px-4">Sender & Threat Subject</th>
+                <th class="py-3 px-4">Classification</th>
+                <th class="py-3 px-4">Composite Score</th>
+                <th class="py-3 px-4">Autonomous Action</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="threat-table-body" class="divide-y divide-zinc-200 dark:divide-zinc-800 text-xs">
+              <!-- Rendered dynamically by app.js -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State Container -->
+        <div id="table-empty-state" class="hidden py-16 px-4 text-center">
+          <div class="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 mx-auto flex items-center justify-center mb-3">
+            <i data-lucide="shield-check" class="w-6 h-6"></i>
+          </div>
+          <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">No security incidents found</h3>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
+            Your fleet is currently clean. You can click "Seed Demo Feed" above to preview real-world attack evaluations.
+          </p>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-zinc-200 dark:border-zinc-800 py-4 px-6 text-center text-xs text-zinc-400 dark:text-zinc-600">
+      MailFlow Fleet Command © 2026 — SME Threat Defense Platform & Heuristic Core
+    </footer>
+
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+</body>
+</html>
