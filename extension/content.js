@@ -251,6 +251,7 @@
           <span class="nU"><a class="J-Ke n0 mailflow-nav-label" href="#mailflow">MailFlow</a></span>
         </div>
         <div class="bsU">
+          <span class="mailflow-counter-badge" id="mailflow-counter-badge">0</span>
           <span class="mailflow-status-dot dot-grey" id="mailflow-status-dot" title="MailFlow Status: Monitoring"></span>
         </div>
       </div>
@@ -449,6 +450,34 @@
     }
   }
 
+  function updateSidebarBadge() {
+    const badge = document.getElementById('mailflow-counter-badge');
+    const dot = document.getElementById('mailflow-status-dot');
+    const count = quarantinedThreats.size;
+
+    if (badge) {
+      if (count > 0) {
+        badge.textContent = count;
+        badge.classList.add('visible');
+      } else {
+        badge.classList.remove('visible');
+      }
+    }
+
+    if (dot) {
+      if (count > 0) {
+        dot.className = 'mailflow-status-dot dot-red';
+        dot.title = `MailFlow: ${count} Threat(s) Quarantined`;
+      } else if (moderateThreats.size > 0) {
+        dot.className = 'mailflow-status-dot dot-yellow';
+        dot.title = `MailFlow: ${moderateThreats.size} Caution Warning(s)`;
+      } else {
+        dot.className = 'mailflow-status-dot dot-grey';
+        dot.title = 'MailFlow Status: Monitoring';
+      }
+    }
+  }
+
   function applyScanVerdict(row, btn, data) {
     const { id, tier, risk_score, threat_type, explanation } = data;
 
@@ -465,12 +494,22 @@
       btn.setAttribute('title', `MailFlow Warning: ${threat_type} (${risk_score}/100)`);
       showToast(`🟡 MailFlow Caution: ${threat_type} (Score: ${risk_score}/100)`, 'warning');
       moderateThreats.set(id, { ...data, row });
+      updateSidebarBadge();
     } else if (tier === 'high') {
       btn.className = 'mailflow-scan-btn verdict-high';
       btn.innerHTML = ICONS.alert;
       btn.setAttribute('title', `MailFlow Threat: ${threat_type} (${risk_score}/100)`);
-      showToast(`🔴 MailFlow Alert: ${threat_type} (Score: ${risk_score}/100) Quarantined`, 'alert');
+      showToast(`🔴 Threat Quarantined: ${threat_type} (${risk_score}/100)`, 'alert');
+      
+      row.dataset.mfRisk = 'high';
       quarantinedThreats.set(id, { ...data, row });
+
+      // Smooth slide-to-right quarantine animation
+      row.classList.add('mailflow-quarantine-slide');
+      setTimeout(() => {
+        row.style.display = 'none';
+        updateSidebarBadge();
+      }, 500);
     }
   }
 

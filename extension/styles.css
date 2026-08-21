@@ -217,6 +217,14 @@ body.mailflow-active-mode #mailflow-placeholder-view {
   border-radius: 16px !important;
 }
 
+/* Slide-to-Right Quarantine Animation for High Risk Emails */
+.mailflow-quarantine-slide {
+  transform: translateX(110%) !important;
+  opacity: 0 !important;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease !important;
+  pointer-events: none !important;
+}
+
 /* ==========================================================================
    3. Email Row Hover Action Toolbar Button (Dynamic 3-Color Indicators)
    ========================================================================== */
