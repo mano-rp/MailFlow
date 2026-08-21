@@ -23,7 +23,6 @@
   --mf-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --mf-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
   --mf-shadow-toast: 0 4px 16px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.16);
-  --mf-dark-canvas: #0f1013;
 }
 
 /* ==========================================================================
@@ -43,7 +42,7 @@
   align-items: center;
   height: 32px !important;
   min-height: 32px !important;
-  padding: 0 16px 0 24px !important;
+  padding: 0 16px 0 24px !important; /* Matches Gmail's 24px left indent */
   margin: 1px 12px 1px 0 !important;
   border-radius: 0 16px 16px 0 !important;
   cursor: pointer;
@@ -53,7 +52,7 @@
   font-weight: 500 !important;
   color: var(--mf-on-surface) !important;
   line-height: 20px;
-  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s ease;
   z-index: 5;
   box-sizing: border-box;
 }
@@ -65,7 +64,6 @@
 
 .mailflow-nav-item:active {
   background-color: rgba(32, 33, 36, 0.1) !important;
-  transform: scale(0.99);
 }
 
 .mailflow-nav-item.active {
@@ -86,7 +84,7 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  margin-right: 14px;
+  margin-right: 18px; /* Matches Gmail's exact 18px gap between icon and text */
   flex-shrink: 0;
 }
 
@@ -99,27 +97,42 @@
 
 .mailflow-nav-item:hover .mailflow-nav-icon {
   color: var(--mf-primary);
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 .mailflow-nav-item.active .mailflow-nav-icon {
   color: var(--mf-primary);
 }
 
-/* Status Indicator Dot */
+.mailflow-nav-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.1px;
+}
+
+/* Status Indicator Dot (Positioned on the right, matching badge alignment) */
+.mailflow-nav-badge-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  padding-left: 8px;
+}
+
 .mailflow-status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   display: inline-block;
-  margin-right: 8px;
   flex-shrink: 0;
   transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .mailflow-status-dot.dot-grey {
   background-color: #80868b;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
 .mailflow-status-dot.dot-green {
@@ -137,60 +150,126 @@
   box-shadow: 0 0 0 2px rgba(249, 171, 0, 0.2);
 }
 
-.mailflow-nav-label {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: 0.1px;
-}
-
 /* ==========================================================================
-   2. Almost Black Placeholder Mail View (Suspected Emails Hub)
+   2. Gmail Native Light Mode Tab View (Suspected Emails Hub)
    ========================================================================== */
 #mailflow-placeholder-view {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 100vh;
+  min-height: 100%;
   width: 100%;
-  background-color: var(--mf-dark-canvas) !important;
-  color: #e3e3e3;
+  background-color: #ffffff !important; /* Native Gmail white */
+  color: #1f1f1f;
   box-sizing: border-box;
-  padding: 32px 40px;
   font-family: var(--mf-font);
   animation: mailflow-fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   overflow-y: auto;
+  border-radius: 16px;
 }
 
-.mailflow-dark-header {
+.mailflow-view-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e4eb;
+  background-color: #ffffff;
 }
 
-.mailflow-dark-title {
-  font-size: 20px;
+.mailflow-view-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mailflow-view-title {
+  font-size: 18px;
   font-weight: 600;
-  color: #f1f3f4;
+  color: #1f1f1f;
   display: flex;
   align-items: center;
   gap: 10px;
   letter-spacing: -0.2px;
 }
 
-.mailflow-dark-badge {
-  font-size: 11px;
+.mailflow-view-badge {
+  font-size: 11.5px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #9aa0a6;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background-color: #d3e3fd;
+  color: #041e49;
+}
+
+.mailflow-view-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mailflow-btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 18px;
+  border: 1px solid #dadce0;
+  background-color: #ffffff;
+  color: #1f1f1f;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.mailflow-btn-action:hover {
+  background-color: #f1f3f4;
+  border-color: #c4c7c5;
+}
+
+/* Empty State / Triage Container */
+.mailflow-view-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 380px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.mailflow-empty-shield-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #e8f0fe;
+  color: #0b57d0;
+  margin-bottom: 20px;
+}
+
+.mailflow-empty-shield-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.mailflow-empty-heading {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f1f1f;
+  margin-bottom: 8px;
+}
+
+.mailflow-empty-subtext {
+  font-size: 14px;
+  color: #5e5e5e;
+  max-width: 440px;
+  line-height: 1.5;
 }
 
 /* ==========================================================================

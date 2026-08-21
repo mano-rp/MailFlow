@@ -28,9 +28,12 @@
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="m9 12 2 2 4-4"/>
     </svg>`,
-    shieldDarkHeader: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a8c7fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    shieldHeader: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b57d0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="m9 12 2 2 4-4"/>
+    </svg>`,
+    refresh: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
     </svg>`,
     check: `<svg class="mailflow-scan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="20 6 9 17 4 12"/>
@@ -156,7 +159,7 @@
 
   /**
    * =========================================================================
-   * MODULE 2: SIDEBAR LABEL INJECTION (Between Spam, All Mail, etc.)
+   * MODULE 2: SIDEBAR LABEL INJECTION (Aligned with Drafts, Purchases, Spam)
    * =========================================================================
    */
 
@@ -199,12 +202,12 @@
     const target = findSidebarTargetAnchor();
     if (!target || !target.container) return;
 
-    // Outer .aim wrapper matching native Gmail list row structure
+    // Outer .aim row matching Gmail
     const aimWrapper = document.createElement('div');
     aimWrapper.id = 'mailflow-aim-wrapper';
     aimWrapper.className = 'aim mailflow-aim-item';
 
-    // Inner .TO button
+    // Inner .TO button with exact icon & label alignment
     const navItem = document.createElement('div');
     navItem.id = 'mailflow-sidebar-nav-item';
     navItem.className = 'TO mailflow-nav-item';
@@ -217,8 +220,10 @@
         <div class="mailflow-nav-icon-wrapper">
           ${ICONS.shield}
         </div>
-        <span class="mailflow-status-dot dot-grey" id="mailflow-status-dot" title="Status: Monitoring"></span>
         <span class="mailflow-nav-label">MailFlow</span>
+        <div class="mailflow-nav-badge-wrapper">
+          <span class="mailflow-status-dot dot-grey" id="mailflow-status-dot" title="MailFlow Status: Monitoring"></span>
+        </div>
       </div>
     `;
 
@@ -230,7 +235,6 @@
     aimWrapper.appendChild(navItem);
 
     if (target.anchor) {
-      // Insert perfectly after Spam / All Mail / Drafts
       target.anchor.after(aimWrapper);
     } else {
       target.container.appendChild(aimWrapper);
@@ -256,7 +260,6 @@
       });
     });
 
-    // Also listen to hash changes & top logo clicks to restore view
     window.removeEventListener('hashchange', handleHashChange);
     window.addEventListener('hashchange', handleHashChange);
   }
@@ -269,7 +272,7 @@
 
   /**
    * =========================================================================
-   * MODULE 3: ALMOST BLACK PLACEHOLDER VIEW (Suspected Emails Hub)
+   * MODULE 3: GMAIL LIGHT MODE TAB VIEW (Suspected Emails Hub)
    * =========================================================================
    */
 
@@ -309,14 +312,39 @@
       placeholder = document.createElement('div');
       placeholder.id = 'mailflow-placeholder-view';
       placeholder.innerHTML = `
-        <div class="mailflow-dark-header">
-          <h1 class="mailflow-dark-title">
-            ${ICONS.shieldDarkHeader}
-            MailFlow
-          </h1>
-          <span class="mailflow-dark-badge">Suspected Emails</span>
+        <div class="mailflow-view-header">
+          <div class="mailflow-view-title-group">
+            <h1 class="mailflow-view-title">
+              ${ICONS.shieldHeader}
+              MailFlow
+            </h1>
+            <span class="mailflow-view-badge">Suspected Emails</span>
+          </div>
+          <div class="mailflow-view-actions">
+            <button id="mailflow-btn-refresh-view" class="mailflow-btn-action">
+              ${ICONS.refresh}
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+        <div class="mailflow-view-body">
+          <div class="mailflow-empty-shield-icon">
+            ${ICONS.shieldHeader}
+          </div>
+          <h2 class="mailflow-empty-heading">No suspected emails</h2>
+          <p class="mailflow-empty-subtext">
+            Emails flagged by MailFlow's SME Shield will appear here for quarantine review and defanged link analysis.
+          </p>
         </div>
       `;
+
+      const refreshBtn = placeholder.querySelector('#mailflow-btn-refresh-view');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+          showToast('MailFlow suspected emails list refreshed', 'info');
+        });
+      }
+
       mainContainer.appendChild(placeholder);
     }
     placeholder.style.display = 'flex';
